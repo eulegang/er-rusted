@@ -1,4 +1,4 @@
-use std::io::{self, BufRead, BufReader, Read};
+use std::io::{self, BufRead, BufReader, Read, Write};
 
 #[cfg(test)]
 mod test;
@@ -13,6 +13,7 @@ pub struct Buffer {
 }
 
 impl Buffer {
+    /// Create a Buffer from a read
     pub fn read(r: impl Read) -> io::Result<Buffer> {
         let mut buf = BufReader::new(r);
         let mut lines = Vec::new();
@@ -29,6 +30,22 @@ impl Buffer {
                 lines.push(line);
             }
         }
+    }
+
+    /// Write a buffer out to a Write
+    pub fn write(&self, w: &mut impl Write) -> io::Result<usize> {
+        let mut written = 0;
+        for line in &self.lines {
+            let bytes = line.as_bytes();
+            w.write_all(bytes)?;
+            w.write_all(&[10])?;
+
+            written += bytes.len() + 1;
+        }
+
+        w.flush()?;
+
+        Ok(written)
     }
 
     /// gives the current lines
