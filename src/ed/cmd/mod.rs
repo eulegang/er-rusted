@@ -22,7 +22,7 @@ pub enum Command {
     Mark(char),
 
     /// Move lines
-    Move(Offset<Point>),
+    Move(Offset),
 
     /// Read file into buffer
     Read(String),
@@ -31,7 +31,7 @@ pub enum Command {
     Substitute(Re, String),
 
     /// Copy region to line
-    Copy(Offset<Point>),
+    Copy(Offset),
 
     /// Write text region to file
     Write(String),
@@ -46,17 +46,22 @@ impl Command {
             | Command::Change(_)
             | Command::Move(_)
             | Command::Substitute(_, _)
-            | Command::Copy(_) => Address::Range(Default::default(), Default::default()),
+            | Command::Copy(_) => Address::Range {
+                start: Default::default(),
+                end: Default::default(),
+            },
 
-            Command::Join => {
-                Address::Range(Offset::Nil(Point::Current), Offset::Relf(Point::Current, 1))
-            }
+            Command::Join => Address::Range {
+                start: Offset::Nil(Point::Current),
+                end: Offset::Relf(Point::Current, 1),
+            },
 
             Command::Mark(_) => Address::Line(Default::default()),
             Command::Read(_) => Address::Line(Offset::Nil(Point::Last)),
-            Command::Write(_) => {
-                Address::Range(Offset::Nil(Point::Absolute(1)), Offset::Nil(Point::Last))
-            }
+            Command::Write(_) => Address::Range {
+                start: Offset::Nil(Point::Abs(1)),
+                end: Offset::Nil(Point::Last),
+            },
         }
     }
 }

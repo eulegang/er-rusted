@@ -16,22 +16,34 @@ fn test_default_addresses() {
 
     assert_eq!(
         Command::Change(String::new()).default_address(),
-        Address::Range(Offset::Nil(Point::Current), Offset::Nil(Point::Current))
+        Address::Range {
+            start: Offset::Nil(Point::Current),
+            end: Offset::Nil(Point::Current)
+        }
     );
 
     assert_eq!(
         Command::Move(Default::default()).default_address(),
-        Address::Range(Offset::Nil(Point::Current), Offset::Nil(Point::Current))
+        Address::Range {
+            start: Offset::Nil(Point::Current),
+            end: Offset::Nil(Point::Current)
+        }
     );
 
     assert_eq!(
         Command::Delete.default_address(),
-        Address::Range(Offset::Nil(Point::Current), Offset::Nil(Point::Current))
+        Address::Range {
+            start: Offset::Nil(Point::Current),
+            end: Offset::Nil(Point::Current)
+        }
     );
 
     assert_eq!(
         Command::Join.default_address(),
-        Address::Range(Offset::Nil(Point::Current), Offset::Relf(Point::Current, 1))
+        Address::Range {
+            start: Offset::Nil(Point::Current),
+            end: Offset::Relf(Point::Current, 1)
+        }
     );
 
     assert_eq!(
@@ -41,7 +53,10 @@ fn test_default_addresses() {
 
     assert_eq!(
         Command::Move(Default::default()).default_address(),
-        Address::Range(Offset::Nil(Point::Current), Offset::Nil(Point::Current))
+        Address::Range {
+            start: Offset::Nil(Point::Current),
+            end: Offset::Nil(Point::Current)
+        }
     );
 
     assert_eq!(
@@ -51,16 +66,25 @@ fn test_default_addresses() {
 
     assert_eq!(
         Command::Write("file".to_string()).default_address(),
-        Address::Range(Offset::Nil(Point::Absolute(1)), Offset::Nil(Point::Last))
+        Address::Range {
+            start: Offset::Nil(Point::Abs(1)),
+            end: Offset::Nil(Point::Last)
+        }
     );
 
     assert_eq!(
         Command::Substitute(Re::from_str("a+").unwrap(), "b".to_string()).default_address(),
-        Address::Range(Offset::Nil(Point::Current), Offset::Nil(Point::Current))
+        Address::Range {
+            start: Offset::Nil(Point::Current),
+            end: Offset::Nil(Point::Current)
+        }
     );
 
     assert_eq!(
         Command::Copy(Default::default()).default_address(),
-        Address::Range(Offset::Nil(Point::Current), Offset::Nil(Point::Current))
+        Address::Range {
+            start: Offset::Nil(Point::Current),
+            end: Offset::Nil(Point::Current)
+        }
     );
 }

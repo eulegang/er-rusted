@@ -1,29 +1,34 @@
 use crate::re::Re;
 
+mod parser;
+
+#[cfg(test)]
+mod test;
+
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Point {
     Current,
     Last,
-    Absolute(usize),
-    RegexForward(Re),
-    RegexBackward(Re),
+    Abs(usize),
+    Ref(Re),
+    Reb(Re),
     Mark(char),
 }
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
-pub enum Offset<T> {
-    Nil(T),
-    Relf(T, usize),
-    Relb(T, usize),
+pub enum Offset {
+    Nil(Point),
+    Relf(Point, usize),
+    Relb(Point, usize),
 }
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Address {
-    Line(Offset<Point>),
-    Range(Offset<Point>, Offset<Point>),
+    Line(Offset),
+    Range { start: Offset, end: Offset },
 }
 
 impl Default for Point {
@@ -32,11 +37,8 @@ impl Default for Point {
     }
 }
 
-impl<T> Default for Offset<T>
-where
-    T: Default,
-{
-    fn default() -> Offset<T> {
+impl Default for Offset {
+    fn default() -> Offset {
         Offset::Nil(Default::default())
     }
 }
