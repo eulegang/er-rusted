@@ -10,3 +10,6 @@ edition = "2018"
 eyre = "0.6"
 regex = "1"
 nom = "6"
+
+rustyline = "7.0"
+rustbox = "0.11"

@@ -2,6 +2,7 @@ use super::*;
 use crate::re::Re;
 use std::str::FromStr;
 
+/*
 #[test]
 fn test_default_addresses() {
     assert_eq!(
@@ -88,3 +89,4 @@ fn test_default_addresses() {
         }
     );
 }
+*/
