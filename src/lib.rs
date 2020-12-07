@@ -8,10 +8,12 @@ macro_rules! re {
 mod buffer;
 pub mod ed;
 mod edit;
+mod interp;
 mod re;
 
 pub use buffer::Buffer;
 pub use edit::{Edit, EditError};
+pub use interp::Interp;
 
 pub(crate) trait Parsable: Sized {
     fn parse(input: &str) -> nom::IResult<&str, Self>;

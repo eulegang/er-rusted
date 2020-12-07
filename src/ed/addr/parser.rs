@@ -16,6 +16,17 @@ const BRE_ESCAPES: &str = "\\.+*?()|[]{}^$?\"dDwWsS";
 
 impl Parsable for Address {
     fn parse(input: &str) -> IResult<&str, Address> {
+        let (input, range) = opt(one_of("%"))(input)?;
+        if range.is_some() {
+            return Ok((
+                input,
+                Address::Range {
+                    start: Offset::Nil(Point::Abs(1)),
+                    end: Offset::Nil(Point::Last),
+                },
+            ));
+        }
+
         let (input, start) = opt(Offset::parse)(input)?;
         let (input, sep) = opt(one_of(",;"))(input)?;
 
