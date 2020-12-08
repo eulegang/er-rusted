@@ -1,6 +1,6 @@
 use super::{Address, Offset, Point};
-use crate::re::Re;
 
+mod action;
 mod parser;
 
 #[cfg(test)]
@@ -12,4 +12,16 @@ pub enum Command {
     Print(Address),
     Delete(Address),
     Nop(Offset),
+
+    Append(Offset),
+    Insert(Offset),
+    Change(Address),
+}
+
+impl Command {
+    pub fn needs_text(&self) -> bool {
+        use Command::*;
+
+        matches!(self, Append(_) | Insert(_) | Change(_))
+    }
 }

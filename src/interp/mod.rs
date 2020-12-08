@@ -1,18 +1,16 @@
-use crate::Buffer;
+use crate::{ed::Command, Buffer};
+
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 
 pub struct Interp {
-    files: Vec<String>,
-    index: usize,
-    buffer: Buffer,
-    marks: HashMap<char, usize>,
+    pub(crate) buffer: Buffer,
+    pub(crate) marks: HashMap<char, usize>,
 }
 
 impl Interp {
     pub fn new(files: Vec<String>) -> io::Result<Interp> {
-        let index = 0;
         let marks = HashMap::new();
 
         let buffer = if let Some(file) = files.get(0) {
@@ -21,11 +19,14 @@ impl Interp {
             Buffer::read("".as_bytes())?
         };
 
-        Ok(Interp {
-            files,
-            index,
-            buffer,
-            marks,
-        })
+        Ok(Interp { buffer, marks })
+    }
+
+    pub fn exec(&mut self, cmd: Command) -> bool {
+        cmd.invoke(self)
+    }
+
+    pub fn exec_with_text(&mut self, cmd: Command, text: Vec<String>) -> bool {
+        cmd.invoke_with_text(self, text)
     }
 }

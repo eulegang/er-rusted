@@ -6,10 +6,10 @@ mod test;
 /// A buffer representing a file being edited
 pub struct Buffer {
     /// 1-based indexing in lines
-    cur: usize,
+    pub(crate) cur: usize,
 
     /// Line content
-    lines: Vec<String>,
+    pub(crate) lines: Vec<String>,
 }
 
 impl Buffer {
@@ -17,7 +17,7 @@ impl Buffer {
     pub fn read(r: impl Read) -> io::Result<Buffer> {
         let mut buf = BufReader::new(r);
         let mut lines = Vec::new();
-        let cur = 0;
+        let cur = 1;
 
         loop {
             let mut line = String::new();
@@ -65,6 +65,22 @@ impl Buffer {
         } else {
             None
         }
+    }
+
+    pub fn remove(&mut self, start: usize, end: usize) {
+        self.lines.drain((start - 1)..=(end - 1));
+    }
+
+    pub fn insert(&mut self, line: usize, lines: Vec<String>) {
+        self.lines.splice(line - 1..line - 1, lines);
+    }
+
+    pub fn append(&mut self, line: usize, lines: Vec<String>) {
+        self.lines.splice(line..line, lines);
+    }
+
+    pub fn change(&mut self, start: usize, end: usize, lines: Vec<String>) {
+        self.lines.splice(start - 1..end, lines);
     }
 }
 

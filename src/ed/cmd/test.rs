@@ -1,7 +1,6 @@
 use super::*;
 use crate::Parsable;
 use nom::combinator::all_consuming;
-use std::str::FromStr;
 
 use Command::*;
 

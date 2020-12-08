@@ -1,5 +1,6 @@
 use er_rusted::{ed::Command, Interp};
-use rustyline::{error::ReadlineError, Editor};
+use eyre::WrapErr;
+use rustyline::{error::ReadlineError, Editor, Helper};
 use std::str::FromStr;
 use structopt::StructOpt;
 
@@ -11,21 +12,46 @@ struct Opt {
 fn main() -> eyre::Result<()> {
     let opt = Opt::from_args();
 
-    let mut interp = Interp::new(opt.files);
+    let mut interp = Interp::new(opt.files).wrap_err("failed to build")?;
 
     let mut rl = Editor::<()>::new();
 
     loop {
-        let readline = rl.readline("* ");
+        let readline = rl.readline("> ");
 
         match readline {
-            Ok(line) => match Command::from_str(&line) {
-                Ok(cmd) => println!("{:?}", cmd),
-                Err(_) => eprintln!("Invalid command"),
-            },
+            Ok(line) => {
+                let cmd = match Command::from_str(&line) {
+                    Ok(cmd) => cmd,
+                    Err(_) => {
+                        eprintln!("< Invalid command");
+                        continue;
+                    }
+                };
+
+                let success = if cmd.needs_text() {
+                    let lines = match read_text_mode(&mut rl) {
+                        Ok(lines) => lines,
+                        Err(ReadlineError::Interrupted) => continue,
+                        Err(ReadlineError::Eof) => break,
+                        Err(err) => {
+                            eprintln!("< error: {:?}", err);
+                            break;
+                        }
+                    };
+
+                    interp.exec_with_text(cmd, lines)
+                } else {
+                    interp.exec(cmd)
+                };
+
+                if !success {
+                    eprintln!("< Failed");
+                }
+            }
 
             Err(ReadlineError::Interrupted) => {
-                break;
+                continue;
             }
 
             Err(ReadlineError::Eof) => {
@@ -33,11 +59,26 @@ fn main() -> eyre::Result<()> {
             }
 
             Err(err) => {
-                println!("Error: {:?}", err);
+                eprintln!("< error: {:?}", err);
                 break;
             }
         }
     }
 
     Ok(())
+}
+
+fn read_text_mode<T: Helper>(rl: &mut Editor<T>) -> Result<Vec<String>, ReadlineError> {
+    let mut buf = Vec::new();
+    loop {
+        let line = rl.readline("")?;
+
+        if line.as_str() == "." {
+            break;
+        }
+
+        buf.push(line);
+    }
+
+    Ok(buf)
 }

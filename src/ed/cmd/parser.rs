@@ -3,23 +3,16 @@ use crate::Parsable;
 use std::str::FromStr;
 
 use nom::{
-    branch::alt,
-    bytes::complete::{escaped, is_not, tag},
-    character::complete::{digit0, digit1, one_of},
+    character::complete::one_of,
     combinator::{all_consuming, opt},
-    sequence::pair,
     IResult,
 };
-
-use Address::*;
-use Offset::*;
-use Point::*;
 
 impl Parsable for Command {
     fn parse(input: &str) -> IResult<&str, Command> {
         let (input, addr) = opt(Address::parse)(input)?;
 
-        let (input, op) = opt(one_of("pd"))(input)?;
+        let (input, op) = opt(one_of("pdaci"))(input)?;
 
         match op {
             Some('p') => Ok((
@@ -29,13 +22,36 @@ impl Parsable for Command {
 
             Some('d') => Ok((
                 input,
-                Command::Print(addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)))),
+                Command::Delete(addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)))),
             )),
+
+            Some('c') => Ok((
+                input,
+                Command::Change(addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)))),
+            )),
+
+            Some('i') => match addr {
+                Some(Address::Line(offset)) => Ok((input, Command::Insert(offset))),
+                None => Ok((input, Command::Insert(Offset::Nil(Point::Current)))),
+                Some(_) => Err(nom::Err::Error(nom::error::Error::new(
+                    input,
+                    nom::error::ErrorKind::Fix,
+                ))),
+            },
+
+            Some('a') => match addr {
+                Some(Address::Line(offset)) => Ok((input, Command::Append(offset))),
+                None => Ok((input, Command::Append(Offset::Nil(Point::Current)))),
+                Some(_) => Err(nom::Err::Error(nom::error::Error::new(
+                    input,
+                    nom::error::ErrorKind::Fix,
+                ))),
+            },
 
             None => match addr {
                 Some(Address::Line(offset)) => Ok((input, Command::Nop(offset))),
                 None => Ok((input, Command::Nop(Offset::Nil(Point::Current)))),
-                Some(addr) => Err(nom::Err::Error(nom::error::Error::new(
+                Some(_) => Err(nom::Err::Error(nom::error::Error::new(
                     input,
                     nom::error::ErrorKind::Fix,
                 ))),
