@@ -1,4 +1,5 @@
 use super::*;
+use crate::ed::VALID_MARKS;
 use crate::Parsable;
 use std::str::FromStr;
 
@@ -12,7 +13,7 @@ impl Parsable for Command {
     fn parse(input: &str) -> IResult<&str, Command> {
         let (input, addr) = opt(Address::parse)(input)?;
 
-        let (input, op) = opt(one_of("pdaci"))(input)?;
+        let (input, op) = opt(one_of("pdacik"))(input)?;
 
         match op {
             Some('p') => Ok((
@@ -29,6 +30,18 @@ impl Parsable for Command {
                 input,
                 Command::Change(addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)))),
             )),
+
+            Some('k') => {
+                let (input, mark) = one_of(VALID_MARKS)(input)?;
+                match addr {
+                    Some(Address::Line(offset)) => Ok((input, Command::Mark(offset, mark))),
+                    None => Ok((input, Command::Mark(Offset::Nil(Point::Current), mark))),
+                    Some(_) => Err(nom::Err::Error(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Fix,
+                    ))),
+                }
+            }
 
             Some('i') => match addr {
                 Some(Address::Line(offset)) => Ok((input, Command::Insert(offset))),

@@ -1,4 +1,5 @@
 use super::*;
+use crate::ed::VALID_MARKS;
 use crate::Parsable;
 use nom::{
     branch::alt,
@@ -10,7 +11,6 @@ use nom::{
 };
 use std::str::FromStr;
 
-const VALID_MARKS: &str = "abcdefghijklmnopqrstuvwxyz_<>";
 const FRE_ESCAPES: &str = "\\.+*?()|[]{}^$?\"/dDwWsS";
 const BRE_ESCAPES: &str = "\\.+*?()|[]{}^$?\"dDwWsS";
 

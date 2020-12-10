@@ -25,6 +25,15 @@ impl Command {
                 }
             }
 
+            Mark(offset, mark) => {
+                if let Some(line) = offset.resolve_line(interp) {
+                    interp.marks.insert(*mark, line);
+                    true
+                } else {
+                    false
+                }
+            }
+
             Nop(offset) => {
                 if let Some(line) = offset.resolve_line(interp) {
                     interp.buffer.cur = line;
