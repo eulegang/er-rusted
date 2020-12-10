@@ -34,6 +34,15 @@ impl Command {
                 }
             }
 
+            Join(addr) => {
+                if let Some((start, end)) = addr.resolve_range(interp) {
+                    join(interp, start, end);
+                    true
+                } else {
+                    false
+                }
+            }
+
             Nop(offset) => {
                 if let Some(line) = offset.resolve_line(interp) {
                     interp.buffer.cur = line;
@@ -94,4 +103,18 @@ fn print(interp: &mut Interp, start: usize, end: usize) {
 fn delete(interp: &mut Interp, start: usize, end: usize) {
     interp.buffer.remove(start, end);
     interp.buffer.cur = start;
+}
+
+fn join(interp: &mut Interp, start: usize, end: usize) {
+    let lines = interp.buffer.remove(start, end).collect::<Vec<String>>();
+    let mut it = lines.into_iter();
+
+    if let Some(mut insert) = it.next() {
+        while let Some(line) = it.next() {
+            insert.push(' ');
+            insert.push_str(line.trim_start());
+        }
+
+        interp.buffer.insert(start, vec![insert]);
+    }
 }

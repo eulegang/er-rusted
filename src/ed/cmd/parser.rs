@@ -13,7 +13,7 @@ impl Parsable for Command {
     fn parse(input: &str) -> IResult<&str, Command> {
         let (input, addr) = opt(Address::parse)(input)?;
 
-        let (input, op) = opt(one_of("pdacik"))(input)?;
+        let (input, op) = opt(one_of("pdacikj"))(input)?;
 
         match op {
             Some('p') => Ok((
@@ -29,6 +29,14 @@ impl Parsable for Command {
             Some('c') => Ok((
                 input,
                 Command::Change(addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)))),
+            )),
+
+            Some('j') => Ok((
+                input,
+                Command::Join(addr.unwrap_or(Address::Range {
+                    start: Offset::Nil(Point::Current),
+                    end: Offset::Relf(Point::Current, 1),
+                })),
             )),
 
             Some('k') => {

@@ -13,6 +13,7 @@ pub enum Command {
     Delete(Address),
     Nop(Offset),
     Mark(Offset, char),
+    Join(Address),
 
     Append(Offset),
     Insert(Offset),

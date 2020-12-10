@@ -1,4 +1,5 @@
 use std::io::{self, BufRead, BufReader, Read, Write};
+use std::vec::Drain;
 
 #[cfg(test)]
 mod test;
@@ -67,8 +68,8 @@ impl Buffer {
         }
     }
 
-    pub fn remove(&mut self, start: usize, end: usize) {
-        self.lines.drain((start - 1)..=(end - 1));
+    pub fn remove(&mut self, start: usize, end: usize) -> Drain<String> {
+        self.lines.drain((start - 1)..=(end - 1))
     }
 
     pub fn insert(&mut self, line: usize, lines: Vec<String>) {
