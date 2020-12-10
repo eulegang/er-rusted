@@ -27,7 +27,7 @@ impl Command {
 
             Nop(offset) => {
                 if let Some(line) = offset.resolve_line(interp) {
-                    nop(interp, line);
+                    interp.buffer.cur = line;
                     true
                 } else {
                     false
@@ -85,8 +85,4 @@ fn print(interp: &mut Interp, start: usize, end: usize) {
 fn delete(interp: &mut Interp, start: usize, end: usize) {
     interp.buffer.remove(start, end);
     interp.buffer.cur = start;
-}
-
-fn nop(interp: &mut Interp, line: usize) {
-    interp.buffer.cur = line
 }
