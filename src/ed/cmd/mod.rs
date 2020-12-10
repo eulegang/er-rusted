@@ -20,6 +20,7 @@ pub enum Command {
     Nop(Offset),
     Mark(Offset, char),
     Join(Address),
+    Move(Address, Offset),
 
     Quit,
 
