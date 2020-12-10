@@ -3,52 +3,54 @@ use crate::ed::addr::{LineResolver, RangeResolver};
 use crate::Interp;
 
 impl Command {
-    pub(crate) fn invoke(&self, interp: &mut Interp) -> bool {
+    pub(crate) fn invoke(&self, interp: &mut Interp) -> CommandResult {
         use Command::*;
 
         match self {
             Print(addr) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     print(interp, start, end);
-                    true
+                    CommandResult::Success
                 } else {
-                    false
+                    CommandResult::Failed
                 }
             }
 
             Delete(addr) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     delete(interp, start, end);
-                    true
+                    CommandResult::Success
                 } else {
-                    false
+                    CommandResult::Failed
                 }
             }
 
             Mark(offset, mark) => {
                 if let Some(line) = offset.resolve_line(interp) {
                     interp.marks.insert(*mark, line);
-                    true
+                    CommandResult::Success
                 } else {
-                    false
+                    CommandResult::Failed
                 }
             }
 
             Join(addr) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     join(interp, start, end);
-                    true
+                    CommandResult::Success
                 } else {
-                    false
+                    CommandResult::Failed
                 }
             }
+
+            Quit => CommandResult::Quit,
 
             Nop(offset) => {
                 if let Some(line) = offset.resolve_line(interp) {
                     interp.buffer.cur = line;
-                    true
+                    CommandResult::Success
                 } else {
-                    false
+                    CommandResult::Failed
                 }
             }
 
@@ -56,32 +58,36 @@ impl Command {
         }
     }
 
-    pub(crate) fn invoke_with_text(&self, interp: &mut Interp, lines: Vec<String>) -> bool {
+    pub(crate) fn invoke_with_text(
+        &self,
+        interp: &mut Interp,
+        lines: Vec<String>,
+    ) -> CommandResult {
         use Command::*;
 
         match self {
             Append(line_ref) => {
                 if let Some(line) = line_ref.resolve_line(interp) {
                     interp.buffer.append(line, lines);
-                    true
+                    CommandResult::Success
                 } else {
-                    false
+                    CommandResult::Failed
                 }
             }
             Insert(line_ref) => {
                 if let Some(line) = line_ref.resolve_line(interp) {
                     interp.buffer.insert(line, lines);
-                    true
+                    CommandResult::Success
                 } else {
-                    false
+                    CommandResult::Failed
                 }
             }
             Change(line_ref) => {
                 if let Some((start, end)) = line_ref.resolve_range(interp) {
                     interp.buffer.change(start, end, lines);
-                    true
+                    CommandResult::Success
                 } else {
-                    false
+                    CommandResult::Failed
                 }
             }
 

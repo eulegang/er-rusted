@@ -13,7 +13,7 @@ impl Parsable for Command {
     fn parse(input: &str) -> IResult<&str, Command> {
         let (input, addr) = opt(Address::parse)(input)?;
 
-        let (input, op) = opt(one_of("pdacikj"))(input)?;
+        let (input, op) = opt(one_of("pdacikjq"))(input)?;
 
         match op {
             Some('p') => Ok((
@@ -38,6 +38,8 @@ impl Parsable for Command {
                     end: Offset::Relf(Point::Current, 1),
                 })),
             )),
+
+            Some('q') => Ok((input, Command::Quit)),
 
             Some('k') => {
                 let (input, mark) = one_of(VALID_MARKS)(input)?;

@@ -6,6 +6,12 @@ mod parser;
 #[cfg(test)]
 mod test;
 
+pub enum CommandResult {
+    Success,
+    Failed,
+    Quit,
+}
+
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Command {
@@ -14,6 +20,8 @@ pub enum Command {
     Nop(Offset),
     Mark(Offset, char),
     Join(Address),
+
+    Quit,
 
     Append(Offset),
     Insert(Offset),

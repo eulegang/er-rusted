@@ -1,4 +1,7 @@
-use er_rusted::{ed::Command, Interp};
+use er_rusted::{
+    ed::{Command, CommandResult},
+    Interp,
+};
 use eyre::WrapErr;
 use rustyline::{error::ReadlineError, Editor, Helper};
 use std::str::FromStr;
@@ -29,7 +32,7 @@ fn main() -> eyre::Result<()> {
                     }
                 };
 
-                let success = if cmd.needs_text() {
+                let result = if cmd.needs_text() {
                     let lines = match read_text_mode(&mut rl) {
                         Ok(lines) => lines,
                         Err(ReadlineError::Interrupted) => continue,
@@ -45,9 +48,11 @@ fn main() -> eyre::Result<()> {
                     interp.exec(cmd)
                 };
 
-                if !success {
-                    eprintln!("< Failed");
-                }
+                match result {
+                    CommandResult::Failed => eprintln!("< Failed"),
+                    CommandResult::Success => (),
+                    CommandResult::Quit => break,
+                };
             }
 
             Err(ReadlineError::Interrupted) => {

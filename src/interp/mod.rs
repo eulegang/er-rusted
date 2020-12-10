@@ -1,4 +1,7 @@
-use crate::{ed::Command, Buffer};
+use crate::{
+    ed::{Command, CommandResult},
+    Buffer,
+};
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -22,11 +25,11 @@ impl Interp {
         Ok(Interp { buffer, marks })
     }
 
-    pub fn exec(&mut self, cmd: Command) -> bool {
+    pub fn exec(&mut self, cmd: Command) -> CommandResult {
         cmd.invoke(self)
     }
 
-    pub fn exec_with_text(&mut self, cmd: Command, text: Vec<String>) -> bool {
+    pub fn exec_with_text(&mut self, cmd: Command, text: Vec<String>) -> CommandResult {
         cmd.invoke_with_text(self, text)
     }
 }
