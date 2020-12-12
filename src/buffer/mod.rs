@@ -89,6 +89,23 @@ impl Buffer {
         }
     }
 
+    pub fn range(&self, start: usize, end: usize) -> Option<Vec<String>> {
+        let begin = start.checked_sub(1).unwrap_or(0);
+        let end = end.checked_sub(1).unwrap_or(0);
+
+        if end >= self.lines.len() {
+            return None;
+        }
+
+        let mut buf = Vec::with_capacity(end - begin + 1);
+
+        for i in begin..=end {
+            buf.push(self.lines[i].clone());
+        }
+
+        Some(buf)
+    }
+
     pub fn append(&mut self, line: usize, lines: Vec<String>) -> bool {
         if line <= self.lines.len() {
             self.cur = line + lines.len();

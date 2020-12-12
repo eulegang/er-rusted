@@ -210,6 +210,33 @@ mod remove {
     }
 }
 
+mod range {
+    use super::*;
+
+    #[test]
+    fn valid() {
+        let buffer = Buffer::read(SAMPLE_TEXT.as_bytes()).unwrap();
+        assert_eq!(
+            buffer.range(1, 2),
+            Some(vec!["hello".to_string(), "world".to_string()])
+        );
+    }
+
+    #[test]
+    fn underflow() {
+        let buffer = Buffer::read(SAMPLE_TEXT.as_bytes()).unwrap();
+        assert_eq!(
+            buffer.range(0, 2),
+            Some(vec!["hello".to_string(), "world".to_string()])
+        );
+    }
+
+    #[test]
+    fn overflow() {
+        let buffer = Buffer::read(SAMPLE_TEXT.as_bytes()).unwrap();
+        assert_eq!(buffer.range(1, 15), None);
+    }
+}
 #[test]
 fn test_change() {
     let mut buffer = Buffer::read(SAMPLE_TEXT.as_bytes()).unwrap();

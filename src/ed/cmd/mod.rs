@@ -21,6 +21,7 @@ pub enum Command {
     Mark(Offset, char),
     Join(Address),
     Move(Address, Offset),
+    Transfer(Address, Offset),
 
     Quit,
 

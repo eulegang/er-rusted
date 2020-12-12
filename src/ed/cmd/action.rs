@@ -61,6 +61,23 @@ impl Command {
                 }
             }
 
+            Transfer(addr, offset) => {
+                if let Some((start, end)) = addr.resolve_range(interp) {
+                    if let Some(to) = offset.resolve_line(interp) {
+                        if let Some(lines) = interp.buffer.range(start, end) {
+                            interp.buffer.insert(to, lines);
+                            CommandResult::Success
+                        } else {
+                            CommandResult::Failed
+                        }
+                    } else {
+                        CommandResult::Failed
+                    }
+                } else {
+                    CommandResult::Failed
+                }
+            }
+
             Quit => CommandResult::Quit,
 
             Nop(offset) => {
