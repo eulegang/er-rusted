@@ -68,16 +68,35 @@ impl Buffer {
         }
     }
 
-    pub fn remove(&mut self, start: usize, end: usize) -> Drain<String> {
-        self.lines.drain((start - 1)..=(end - 1))
+    pub fn remove(&mut self, start: usize, end: usize) -> Option<Drain<String>> {
+        if 1 <= start && end <= self.lines.len() {
+            self.cur = start;
+            Some(self.lines.drain((start - 1)..=(end - 1)))
+        } else {
+            None
+        }
     }
 
-    pub fn insert(&mut self, line: usize, lines: Vec<String>) {
-        self.lines.splice(line - 1..line - 1, lines);
+    pub fn insert(&mut self, line: usize, lines: Vec<String>) -> bool {
+        let realign = line.checked_sub(1).unwrap_or(0);
+
+        if realign < self.lines.len() {
+            self.cur = realign + lines.len();
+            self.lines.splice(realign..realign, lines);
+            true
+        } else {
+            false
+        }
     }
 
-    pub fn append(&mut self, line: usize, lines: Vec<String>) {
-        self.lines.splice(line..line, lines);
+    pub fn append(&mut self, line: usize, lines: Vec<String>) -> bool {
+        if line <= self.lines.len() {
+            self.cur = line + lines.len();
+            self.lines.splice(line..line, lines);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn change(&mut self, start: usize, end: usize, lines: Vec<String>) {

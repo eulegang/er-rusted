@@ -46,9 +46,12 @@ impl Command {
             Move(addr, offset) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     if let Some(to) = offset.resolve_line(interp) {
-                        let lines = interp.buffer.remove(start, end).collect::<Vec<String>>();
-                        interp.buffer.insert(to, lines);
+                        let lines = match interp.buffer.remove(start, end) {
+                            Some(d) => d.collect::<Vec<String>>(),
+                            None => return CommandResult::Failed,
+                        };
 
+                        interp.buffer.insert(to, lines);
                         CommandResult::Success
                     } else {
                         CommandResult::Failed
@@ -127,7 +130,11 @@ fn delete(interp: &mut Interp, start: usize, end: usize) {
 }
 
 fn join(interp: &mut Interp, start: usize, end: usize) {
-    let lines = interp.buffer.remove(start, end).collect::<Vec<String>>();
+    let lines = match interp.buffer.remove(start, end) {
+        Some(d) => d.collect::<Vec<String>>(),
+        None => return,
+    };
+
     let mut it = lines.into_iter();
 
     if let Some(mut insert) = it.next() {
