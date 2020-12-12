@@ -2,6 +2,7 @@ use regex::Regex;
 use std::ops::Deref;
 use std::str::FromStr;
 
+mod parse;
 #[cfg(test)]
 mod test;
 
@@ -43,4 +44,17 @@ impl PartialEq for Re {
     fn eq(&self, other: &Self) -> bool {
         self.content.eq(&other.content)
     }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Pat {
+    Replay,
+    Expansion(Vec<Expansion>),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Expansion {
+    Lit(String),
+    Whole,
+    Pos(usize),
 }

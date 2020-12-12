@@ -1,4 +1,5 @@
 use super::{Address, Offset, Point};
+use crate::re::{Pat, Re};
 
 mod action;
 mod parser;
