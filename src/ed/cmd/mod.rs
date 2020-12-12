@@ -23,6 +23,9 @@ pub enum Command {
     Move(Address, Offset),
     Transfer(Address, Offset),
 
+    Yank(Address),
+    Paste(Offset),
+
     Quit,
 
     Append(Offset),

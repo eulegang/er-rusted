@@ -10,11 +10,13 @@ use std::io;
 pub struct Interp {
     pub(crate) buffer: Buffer,
     pub(crate) marks: HashMap<char, usize>,
+    pub(crate) cut: Vec<String>,
 }
 
 impl Interp {
     pub fn new(files: Vec<String>) -> io::Result<Interp> {
         let marks = HashMap::new();
+        let cut = Vec::new();
 
         let buffer = if let Some(file) = files.get(0) {
             Buffer::read(File::open(file)?)?
@@ -22,7 +24,7 @@ impl Interp {
             Buffer::read("".as_bytes())?
         };
 
-        Ok(Interp { buffer, marks })
+        Ok(Interp { buffer, marks, cut })
     }
 
     pub fn exec(&mut self, cmd: Command) -> CommandResult {

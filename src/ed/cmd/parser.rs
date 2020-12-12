@@ -13,7 +13,7 @@ impl Parsable for Command {
     fn parse(input: &str) -> IResult<&str, Command> {
         let (input, addr) = opt(Address::parse)(input)?;
 
-        let (input, op) = opt(one_of("pdacikjqmt"))(input)?;
+        let (input, op) = opt(one_of("pdacikjqmtyx"))(input)?;
 
         match op {
             Some('p') => Ok((
@@ -40,6 +40,11 @@ impl Parsable for Command {
             )),
 
             Some('q') => Ok((input, Command::Quit)),
+
+            Some('y') => Ok((
+                input,
+                Command::Yank(addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)))),
+            )),
 
             Some('k') => {
                 let (input, mark) = one_of(VALID_MARKS)(input)?;
@@ -87,6 +92,15 @@ impl Parsable for Command {
             Some('a') => match addr {
                 Some(Address::Line(offset)) => Ok((input, Command::Append(offset))),
                 None => Ok((input, Command::Append(Offset::Nil(Point::Current)))),
+                Some(_) => Err(nom::Err::Error(nom::error::Error::new(
+                    input,
+                    nom::error::ErrorKind::Fix,
+                ))),
+            },
+
+            Some('x') => match addr {
+                Some(Address::Line(offset)) => Ok((input, Command::Paste(offset))),
+                None => Ok((input, Command::Paste(Offset::Nil(Point::Current)))),
                 Some(_) => Err(nom::Err::Error(nom::error::Error::new(
                     input,
                     nom::error::ErrorKind::Fix,

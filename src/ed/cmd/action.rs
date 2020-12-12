@@ -78,6 +78,28 @@ impl Command {
                 }
             }
 
+            Yank(addr) => {
+                if let Some((start, end)) = addr.resolve_range(interp) {
+                    if let Some(lines) = interp.buffer.range(start, end) {
+                        interp.cut = lines;
+                        CommandResult::Success
+                    } else {
+                        CommandResult::Failed
+                    }
+                } else {
+                    CommandResult::Failed
+                }
+            }
+
+            Paste(offset) => {
+                if let Some(line) = offset.resolve_line(interp) {
+                    interp.buffer.insert(line, interp.cut.clone());
+                    CommandResult::Success
+                } else {
+                    CommandResult::Failed
+                }
+            }
+
             Quit => CommandResult::Quit,
 
             Nop(offset) => {
