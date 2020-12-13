@@ -4,9 +4,10 @@ use crate::Parsable;
 use std::str::FromStr;
 
 use nom::{
+    branch::{alt, permutation},
     bytes::complete::{escaped, is_not, tag},
-    character::complete::one_of,
-    combinator::{all_consuming, opt},
+    character::complete::{digit1, one_of},
+    combinator::{all_consuming, cond, opt},
     sequence::preceded,
     IResult,
 };
@@ -120,7 +121,7 @@ impl Parsable for Command {
 
             Some('s') if input.is_empty() => {
                 let addr = addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)));
-                Ok((input, Command::Subst(addr, None, None)))
+                Ok((input, Command::Subst(addr, None, None, None)))
             }
 
             Some('s') => {
@@ -150,10 +151,27 @@ impl Parsable for Command {
                             nom::error::ErrorKind::Fix,
                         ))))?;
 
-                let (input, _) = opt(tag(&*format!("{}", sep)))(input)?;
+                let (input, flags_sep) = opt(tag(&*format!("{}", sep)))(input)?;
+
+                let (input, flags) = cond(
+                    flags_sep.is_some(),
+                    permutation((opt(tag("p")), opt(alt((tag("g"), digit1))), opt(tag("p")))),
+                )(input)?;
+
+                let flags = flags.map(|(print, occurances, after_print)| {
+                    let occurances = match occurances {
+                        Some("g") => 0,
+                        Some(digits) => digits.parse().unwrap(),
+                        None => 1,
+                    };
+
+                    let print = print.or(after_print) == Some("p");
+
+                    SubstFlags { print, occurances }
+                });
 
                 let addr = addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)));
-                Ok((input, Command::Subst(addr, Some(re), pat)))
+                Ok((input, Command::Subst(addr, Some(re), pat, flags)))
             }
 
             _ => unreachable!(),

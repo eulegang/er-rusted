@@ -101,8 +101,16 @@ impl Command {
                 }
             }
 
-            Subst(addr, re, pat) => {
+            Subst(addr, re, pat, flags) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
+                    let flags = flags.unwrap_or_else(|| {
+                        if re.is_none() && pat.is_none() {
+                            interp.last_flags.unwrap_or_default()
+                        } else {
+                            Default::default()
+                        }
+                    });
+
                     let re = match (re, &interp.last_re) {
                         (Some(re), _) | (None, Some(re)) => re.clone(),
                         (None, None) => return CommandResult::Failed,
@@ -115,7 +123,7 @@ impl Command {
                         }
                     };
 
-                    let result = run_subst(interp, start, end, &re, &pat);
+                    let result = run_subst(interp, start, end, &re, &pat, &flags);
 
                     interp.last_re = Some(re);
                     interp.last_pat = Some(pat);
@@ -212,7 +220,14 @@ fn join(interp: &mut Interp, start: usize, end: usize) {
     }
 }
 
-fn run_subst(interp: &mut Interp, start: usize, end: usize, re: &Re, pat: &Pat) -> CommandResult {
+fn run_subst(
+    interp: &mut Interp,
+    start: usize,
+    end: usize,
+    re: &Re,
+    pat: &Pat,
+    flags: &SubstFlags,
+) -> CommandResult {
     let mut replaced = false;
 
     if !pat.compatible(re) {
@@ -227,11 +242,15 @@ fn run_subst(interp: &mut Interp, start: usize, end: usize, re: &Re, pat: &Pat) 
         };
 
         let replaced = re
-            .replace_all(&line, |cap: &Captures| {
+            .replacen(&line, flags.occurances, |cap: &Captures| {
                 replaced = true;
                 pat.expand(&cap)
             })
             .to_string();
+
+        if flags.print {
+            println!("{}", replaced);
+        }
 
         interp.buffer.replace_line(i, replaced);
     }

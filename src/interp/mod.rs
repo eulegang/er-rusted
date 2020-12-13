@@ -1,5 +1,5 @@
 use crate::{
-    ed::{Command, CommandResult},
+    ed::{Command, CommandResult, SubstFlags},
     re::{Pat, Re},
     Buffer,
 };
@@ -15,6 +15,7 @@ pub struct Interp {
 
     pub(crate) last_re: Option<Re>,
     pub(crate) last_pat: Option<Pat>,
+    pub(crate) last_flags: Option<SubstFlags>,
 }
 
 impl Interp {
@@ -30,6 +31,7 @@ impl Interp {
 
         let last_re = None;
         let last_pat = None;
+        let last_flags = None;
 
         Ok(Interp {
             buffer,
@@ -37,6 +39,7 @@ impl Interp {
             cut,
             last_re,
             last_pat,
+            last_flags,
         })
     }
 
