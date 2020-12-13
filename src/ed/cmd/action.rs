@@ -102,25 +102,17 @@ impl Command {
             }
 
             Subst(addr, re, pat) => {
-                //TODO: Clean this mess up
                 if let Some((start, end)) = addr.resolve_range(interp) {
-                    let re = re.clone().or_else(|| interp.last_re.clone());
-                    let re = match re {
-                        Some(re) => re,
-                        None => return CommandResult::Failed,
+                    let re = match (re, &interp.last_re) {
+                        (Some(re), _) | (None, Some(re)) => re.clone(),
+                        (None, None) => return CommandResult::Failed,
                     };
 
-                    let pat = pat.clone().or_else(|| interp.last_pat.clone());
-                    let pat = match pat {
-                        Some(Pat::Replay) => {
-                            if let Some(s) = interp.last_pat.clone() {
-                                s
-                            } else {
-                                return CommandResult::Failed;
-                            }
+                    let pat = match (pat, &interp.last_pat) {
+                        (Some(Pat::Replay), None) | (None, None) => return CommandResult::Failed,
+                        (Some(Pat::Replay), Some(pat)) | (Some(pat), _) | (None, Some(pat)) => {
+                            pat.clone()
                         }
-                        Some(pat) => pat,
-                        None => return CommandResult::Failed,
                     };
 
                     let result = run_subst(interp, start, end, &re, &pat);
