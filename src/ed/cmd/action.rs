@@ -1,6 +1,7 @@
 use super::*;
 use crate::ed::addr::{LineResolver, RangeResolver};
 use crate::Interp;
+use regex::Captures;
 
 impl Command {
     pub(crate) fn invoke(&self, interp: &mut Interp) -> CommandResult {
@@ -100,6 +101,39 @@ impl Command {
                 }
             }
 
+            Subst(addr, re, pat) => {
+                //TODO: Clean this mess up
+                if let Some((start, end)) = addr.resolve_range(interp) {
+                    let re = re.clone().or_else(|| interp.last_re.clone());
+                    let re = match re {
+                        Some(re) => re,
+                        None => return CommandResult::Failed,
+                    };
+
+                    let pat = pat.clone().or_else(|| interp.last_pat.clone());
+                    let pat = match pat {
+                        Some(Pat::Replay) => {
+                            if let Some(s) = interp.last_pat.clone() {
+                                s
+                            } else {
+                                return CommandResult::Failed;
+                            }
+                        }
+                        Some(pat) => pat,
+                        None => return CommandResult::Failed,
+                    };
+
+                    let result = run_subst(interp, start, end, &re, &pat);
+
+                    interp.last_re = Some(re);
+                    interp.last_pat = Some(pat);
+
+                    result
+                } else {
+                    CommandResult::Failed
+                }
+            }
+
             Quit => CommandResult::Quit,
 
             Nop(offset) => {
@@ -183,5 +217,36 @@ fn join(interp: &mut Interp, start: usize, end: usize) {
         }
 
         interp.buffer.insert(start, vec![insert]);
+    }
+}
+
+fn run_subst(interp: &mut Interp, start: usize, end: usize, re: &Re, pat: &Pat) -> CommandResult {
+    let mut replaced = false;
+
+    if !pat.compatible(re) {
+        return CommandResult::Failed;
+    }
+
+    for i in start..=end {
+        let line = if let Some(line) = interp.buffer.line(i) {
+            line.clone()
+        } else {
+            continue;
+        };
+
+        let replaced = re
+            .replace_all(&line, |cap: &Captures| {
+                replaced = true;
+                pat.expand(&cap)
+            })
+            .to_string();
+
+        interp.buffer.replace_line(i, replaced);
+    }
+
+    if replaced {
+        CommandResult::Success
+    } else {
+        CommandResult::Failed
     }
 }

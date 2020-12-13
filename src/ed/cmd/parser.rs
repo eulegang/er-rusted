@@ -4,8 +4,10 @@ use crate::Parsable;
 use std::str::FromStr;
 
 use nom::{
+    bytes::complete::{escaped, is_not, tag},
     character::complete::one_of,
     combinator::{all_consuming, opt},
+    sequence::preceded,
     IResult,
 };
 
@@ -13,7 +15,7 @@ impl Parsable for Command {
     fn parse(input: &str) -> IResult<&str, Command> {
         let (input, addr) = opt(Address::parse)(input)?;
 
-        let (input, op) = opt(one_of("pdacikjqmtyx"))(input)?;
+        let (input, op) = opt(one_of("pdacikjqmtyxs"))(input)?;
 
         match op {
             Some('p') => Ok((
@@ -115,6 +117,44 @@ impl Parsable for Command {
                     nom::error::ErrorKind::Fix,
                 ))),
             },
+
+            Some('s') if input.is_empty() => {
+                let addr = addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)));
+                Ok((input, Command::Subst(addr, None, None)))
+            }
+
+            Some('s') => {
+                let (input, sep) = one_of("/^:?")(input)?;
+                let (input, re_str) = escaped(
+                    is_not(&*format!("{}\\", sep)),
+                    '\\',
+                    one_of("\\.+*?()|[]{}^$?\"/dDwWsS"),
+                )(input)?;
+
+                let re = Re::from_str(re_str).or(Err(nom::Err::Error(nom::error::Error::new(
+                    input,
+                    nom::error::ErrorKind::Fix,
+                ))))?;
+
+                let (input, pat_str) = opt(preceded(
+                    one_of(&*sep.to_string()),
+                    escaped(is_not(&*format!("{}\\", sep)), '\\', one_of("\\&%")),
+                ))(input)?;
+
+                let pat =
+                    pat_str
+                        .map(|s| Pat::from_str(s))
+                        .transpose()
+                        .or(Err(nom::Err::Error(nom::error::Error::new(
+                            input,
+                            nom::error::ErrorKind::Fix,
+                        ))))?;
+
+                let (input, _) = opt(tag(&*format!("{}", sep)))(input)?;
+
+                let addr = addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)));
+                Ok((input, Command::Subst(addr, Some(re), pat)))
+            }
 
             _ => unreachable!(),
         }

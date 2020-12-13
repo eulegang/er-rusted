@@ -1,5 +1,6 @@
 use crate::{
     ed::{Command, CommandResult},
+    re::{Pat, Re},
     Buffer,
 };
 
@@ -11,6 +12,9 @@ pub struct Interp {
     pub(crate) buffer: Buffer,
     pub(crate) marks: HashMap<char, usize>,
     pub(crate) cut: Vec<String>,
+
+    pub(crate) last_re: Option<Re>,
+    pub(crate) last_pat: Option<Pat>,
 }
 
 impl Interp {
@@ -24,7 +28,16 @@ impl Interp {
             Buffer::read("".as_bytes())?
         };
 
-        Ok(Interp { buffer, marks, cut })
+        let last_re = None;
+        let last_pat = None;
+
+        Ok(Interp {
+            buffer,
+            marks,
+            cut,
+            last_re,
+            last_pat,
+        })
     }
 
     pub fn exec(&mut self, cmd: Command) -> CommandResult {

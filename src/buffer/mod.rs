@@ -68,6 +68,15 @@ impl Buffer {
         }
     }
 
+    pub fn replace_line(&mut self, lineno: usize, line: String) -> Option<String> {
+        let realign = lineno.checked_sub(1).unwrap_or(0);
+        if realign < self.lines.len() {
+            self.lines.splice(realign..=realign, vec![line]).next()
+        } else {
+            None
+        }
+    }
+
     pub fn remove(&mut self, start: usize, end: usize) -> Option<Drain<String>> {
         if 1 <= start && end <= self.lines.len() {
             self.cur = start;

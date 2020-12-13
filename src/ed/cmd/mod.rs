@@ -24,6 +24,8 @@ pub enum Command {
     Move(Address, Offset),
     Transfer(Address, Offset),
 
+    Subst(Address, Option<Re>, Option<Pat>), // TODO: add flags
+
     Yank(Address),
     Paste(Offset),
 
