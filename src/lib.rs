@@ -10,10 +10,12 @@ pub mod ed;
 mod edit;
 mod interp;
 mod re;
+mod ui;
 
 pub use buffer::Buffer;
 pub use edit::{Edit, EditError};
-pub use interp::Interpeter;
+pub use interp::Interpreter;
+pub use ui::{Repl, UI};
 
 pub(crate) trait Parsable: Sized {
     fn parse(input: &str) -> nom::IResult<&str, Self>;

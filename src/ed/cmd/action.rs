@@ -1,10 +1,10 @@
 use super::*;
 use crate::ed::addr::{LineResolver, RangeResolver};
-use crate::Interpeter;
+use crate::Interpreter;
 use regex::Captures;
 
 impl Command {
-    pub(crate) fn invoke(&self, interp: &mut Interpeter) -> CommandResult {
+    pub(crate) fn invoke(&self, interp: &mut Interpreter) -> CommandResult {
         use Command::*;
 
         match self {
@@ -151,7 +151,7 @@ impl Command {
 
     pub(crate) fn invoke_with_text(
         &self,
-        interp: &mut Interpeter,
+        interp: &mut Interpreter,
         lines: Vec<String>,
     ) -> CommandResult {
         use Command::*;
@@ -187,7 +187,7 @@ impl Command {
     }
 }
 
-fn print(interp: &mut Interpeter, start: usize, end: usize) {
+fn print(interp: &mut Interpreter, start: usize, end: usize) {
     for line in start..=end {
         if let Some(l) = interp.buffer.line(line) {
             println!("{}", l)
@@ -197,12 +197,12 @@ fn print(interp: &mut Interpeter, start: usize, end: usize) {
     interp.buffer.cur = end
 }
 
-fn delete(interp: &mut Interpeter, start: usize, end: usize) {
+fn delete(interp: &mut Interpreter, start: usize, end: usize) {
     interp.buffer.remove(start, end);
     interp.buffer.cur = start;
 }
 
-fn join(interp: &mut Interpeter, start: usize, end: usize) {
+fn join(interp: &mut Interpreter, start: usize, end: usize) {
     let lines = match interp.buffer.remove(start, end) {
         Some(d) => d.collect::<Vec<String>>(),
         None => return,
@@ -221,7 +221,7 @@ fn join(interp: &mut Interpeter, start: usize, end: usize) {
 }
 
 fn run_subst(
-    interp: &mut Interpeter,
+    interp: &mut Interpreter,
     start: usize,
     end: usize,
     re: &Re,

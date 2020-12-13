@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 
-pub struct Interpeter {
+pub struct Interpreter {
     pub(crate) buffer: Buffer,
     pub(crate) marks: HashMap<char, usize>,
     pub(crate) cut: Vec<String>,
@@ -18,8 +18,8 @@ pub struct Interpeter {
     pub(crate) last_flags: Option<SubstFlags>,
 }
 
-impl Interpeter {
-    pub fn new(files: Vec<String>) -> io::Result<Interpeter> {
+impl Interpreter {
+    pub fn new(files: Vec<String>) -> io::Result<Interpreter> {
         let marks = HashMap::new();
         let cut = Vec::new();
 
@@ -33,7 +33,7 @@ impl Interpeter {
         let last_pat = None;
         let last_flags = None;
 
-        Ok(Interpeter {
+        Ok(Interpreter {
             buffer,
             marks,
             cut,
