@@ -1,6 +1,6 @@
 use er_rusted::{
     ed::{Command, CommandResult},
-    Interp,
+    Interpeter,
 };
 use eyre::WrapErr;
 use rustyline::{error::ReadlineError, Editor, Helper};
@@ -15,7 +15,7 @@ struct Opt {
 fn main() -> eyre::Result<()> {
     let opt = Opt::from_args();
 
-    let mut interp = Interp::new(opt.files).wrap_err("failed to build")?;
+    let mut interp = Interpeter::new(opt.files).wrap_err("failed to build")?;
 
     let mut rl = Editor::<()>::new();
 

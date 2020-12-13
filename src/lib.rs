@@ -13,7 +13,7 @@ mod re;
 
 pub use buffer::Buffer;
 pub use edit::{Edit, EditError};
-pub use interp::Interp;
+pub use interp::Interpeter;
 
 pub(crate) trait Parsable: Sized {
     fn parse(input: &str) -> nom::IResult<&str, Self>;

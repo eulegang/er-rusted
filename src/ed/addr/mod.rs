@@ -1,5 +1,5 @@
 use crate::re::Re;
-use crate::Interp;
+use crate::Interpeter;
 
 mod parser;
 
@@ -45,11 +45,11 @@ impl Default for Offset {
 }
 
 pub trait RangeResolver {
-    fn resolve_range(&self, interp: &Interp) -> Option<(usize, usize)>;
+    fn resolve_range(&self, interp: &Interpeter) -> Option<(usize, usize)>;
 }
 
 impl RangeResolver for Address {
-    fn resolve_range(&self, interp: &Interp) -> Option<(usize, usize)> {
+    fn resolve_range(&self, interp: &Interpeter) -> Option<(usize, usize)> {
         match self {
             Address::Line(offset) => {
                 let pos = offset.resolve_line(interp);
@@ -65,11 +65,11 @@ impl RangeResolver for Address {
 }
 
 pub trait LineResolver {
-    fn resolve_line(&self, interp: &Interp) -> Option<usize>;
+    fn resolve_line(&self, interp: &Interpeter) -> Option<usize>;
 }
 
 impl LineResolver for Offset {
-    fn resolve_line(&self, interp: &Interp) -> Option<usize> {
+    fn resolve_line(&self, interp: &Interpeter) -> Option<usize> {
         match self {
             Offset::Nil(point) => point.resolve_line(interp),
             Offset::Relf(point, offset) => point.resolve_line(interp).map(|i| i + offset),
@@ -79,7 +79,7 @@ impl LineResolver for Offset {
 }
 
 impl LineResolver for Point {
-    fn resolve_line(&self, interp: &Interp) -> Option<usize> {
+    fn resolve_line(&self, interp: &Interpeter) -> Option<usize> {
         match self {
             Point::Current => Some(interp.buffer.cur),
             Point::Abs(s) => Some(s.clone()),
