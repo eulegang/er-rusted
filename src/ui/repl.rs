@@ -5,7 +5,7 @@ use crate::{
     Interpreter,
 };
 use eyre::WrapErr;
-use rustyline::{error::ReadlineError, Editor, Helper};
+use rustyline::{error::ReadlineError, Config, EditMode, Editor, Helper};
 use std::str::FromStr;
 
 pub struct Repl {
@@ -20,7 +20,8 @@ impl UI for Repl {
     }
 
     fn run(&mut self) -> eyre::Result<()> {
-        let mut rl = Editor::<()>::new();
+        let editor_config = Config::builder().edit_mode(EditMode::Vi).build();
+        let mut rl = Editor::<()>::with_config(editor_config);
 
         loop {
             let line = match self.read_line(&mut rl) {
@@ -32,11 +33,11 @@ impl UI for Repl {
             };
 
             match self.process_line(&line, &mut rl) {
-                LineHandling::Next => continue,
                 LineHandling::Quit => break,
-                LineHandling::InvalidCommand => continue,
-                LineHandling::InvalidInvocation => continue,
-            }
+                _ => (),
+            };
+
+            rl.add_history_entry(line);
         }
 
         Ok(())
