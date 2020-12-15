@@ -1,7 +1,7 @@
 use super::*;
 
 use crate::{
-    ed::{Command, CommandResult},
+    cmd::{Command, CommandResult},
     Interpreter,
 };
 use eyre::WrapErr;

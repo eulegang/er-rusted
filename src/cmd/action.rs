@@ -1,5 +1,5 @@
 use super::*;
-use crate::ed::addr::{LineResolver, RangeResolver};
+use crate::addr::{LineResolver, RangeResolver};
 use crate::Interpreter;
 use regex::Captures;
 

@@ -1,6 +1,5 @@
 use super::*;
-use crate::ed::VALID_MARKS;
-use crate::Parsable;
+use crate::{Parsable, VALID_MARKS};
 use nom::{
     branch::alt,
     bytes::complete::{escaped, is_not, tag},

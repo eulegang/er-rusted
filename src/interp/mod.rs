@@ -1,5 +1,5 @@
 use crate::{
-    ed::{Command, CommandResult, SubstFlags},
+    cmd::{Command, CommandResult, SubstFlags},
     re::{Pat, Re},
     Buffer,
 };

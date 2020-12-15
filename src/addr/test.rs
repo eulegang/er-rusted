@@ -1,5 +1,7 @@
-use super::*;
-use crate::Parsable;
+use crate::{
+    addr::{Address, Offset, Point},
+    Parsable,
+};
 use nom::combinator::all_consuming;
 use std::str::FromStr;
 

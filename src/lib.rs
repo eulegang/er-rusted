@@ -5,8 +5,9 @@ macro_rules! re {
     };
 }
 
+mod addr;
 mod buffer;
-pub mod ed;
+mod cmd;
 mod interp;
 mod re;
 mod ui;
@@ -14,6 +15,8 @@ mod ui;
 pub use buffer::Buffer;
 pub use interp::Interpreter;
 pub use ui::{Repl, UI};
+
+pub(crate) const VALID_MARKS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ<>_";
 
 pub(crate) trait Parsable: Sized {
     fn parse(input: &str) -> nom::IResult<&str, Self>;
