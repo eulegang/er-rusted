@@ -12,6 +12,7 @@ pub struct Interpreter {
     pub(crate) buffer: Buffer,
     pub(crate) marks: HashMap<char, usize>,
     pub(crate) cut: Vec<String>,
+    pub(crate) filename: Option<String>,
 
     pub(crate) last_re: Option<Re>,
     pub(crate) last_pat: Option<Pat>,
@@ -23,10 +24,10 @@ impl Interpreter {
         let marks = HashMap::new();
         let cut = Vec::new();
 
-        let buffer = if let Some(file) = files.get(0) {
-            Buffer::read(File::open(file)?)?
+        let (filename, buffer) = if let Some(file) = files.get(0) {
+            (Some(file.clone()), Buffer::read(File::open(file)?)?)
         } else {
-            Buffer::read("".as_bytes())?
+            (None, Buffer::read("".as_bytes())?)
         };
 
         let last_re = None;
@@ -37,6 +38,7 @@ impl Interpreter {
             buffer,
             marks,
             cut,
+            filename,
             last_re,
             last_pat,
             last_flags,

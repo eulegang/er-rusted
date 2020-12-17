@@ -28,16 +28,30 @@ impl UI for Repl {
                 Ok(line) => line,
                 Err(LineHandling::Next) => continue,
                 Err(LineHandling::Quit) => break,
-                Err(LineHandling::InvalidCommand) => continue,
-                Err(LineHandling::InvalidInvocation) => continue,
+                Err(LineHandling::InvalidCommand) => {
+                    eprintln!("* invalid command");
+                    continue;
+                }
+                Err(LineHandling::InvalidInvocation) => {
+                    eprintln!("* invalid invocation");
+                    continue;
+                }
             };
 
             match self.process_line(&line, &mut rl) {
                 LineHandling::Quit => break,
+                LineHandling::InvalidCommand => {
+                    eprintln!("* invalid command");
+                    continue;
+                }
+                LineHandling::InvalidInvocation => {
+                    eprintln!("* invalid invocation");
+                    continue;
+                }
                 _ => (),
             };
 
-            rl.add_history_entry(line);
+            rl.add_history_entry(&line);
         }
 
         Ok(())

@@ -101,6 +101,19 @@ impl Command {
                 }
             }
 
+            Write(addr, sink) => {
+                if let Some((start, end)) = addr.resolve_range(interp) {
+                    if let Some(lines) = interp.buffer.range(start, end) {
+                        sink.sink_lines(interp.filename.as_deref(), &lines);
+                        CommandResult::Success
+                    } else {
+                        CommandResult::Failed
+                    }
+                } else {
+                    CommandResult::Failed
+                }
+            }
+
             Subst(addr, re, pat, flags) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     let flags = flags.unwrap_or_else(|| {

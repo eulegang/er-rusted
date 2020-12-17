@@ -1,4 +1,4 @@
-use super::Command;
+use super::{Command, Sink};
 use crate::{
     addr::{Address, Offset, Point},
     cmd::SubstFlags,
@@ -10,8 +10,8 @@ use std::str::FromStr;
 use nom::{
     branch::{alt, permutation},
     bytes::complete::{escaped, is_not, tag},
-    character::complete::{digit1, one_of},
-    combinator::{all_consuming, cond, opt},
+    character::complete::{digit1, multispace0, one_of},
+    combinator::{all_consuming, cond, eof, opt},
     sequence::preceded,
     IResult,
 };
@@ -20,7 +20,7 @@ impl Parsable for Command {
     fn parse(input: &str) -> IResult<&str, Command> {
         let (input, addr) = opt(Address::parse)(input)?;
 
-        let (input, op) = opt(one_of("pdacikjqmtyxs"))(input)?;
+        let (input, op) = opt(one_of("pdacikjqmtyxsw"))(input)?;
 
         match op {
             Some('p') => Ok((
@@ -45,6 +45,18 @@ impl Parsable for Command {
                     end: Offset::Relf(Point::Current, 1),
                 })),
             )),
+
+            Some('w') => {
+                let (input, _) = multispace0(input)?;
+                let (input, sink) = Sink::parse(input)?;
+
+                let addr = addr.unwrap_or(Address::Range {
+                    start: Offset::Nil(Point::Abs(1)),
+                    end: Offset::Nil(Point::Last),
+                });
+
+                Ok((input, Command::Write(addr, sink)))
+            }
 
             Some('q') => Ok((input, Command::Quit)),
 
@@ -188,5 +200,19 @@ impl FromStr for Command {
 
     fn from_str(input: &str) -> Result<Command, ()> {
         Ok(all_consuming(Command::parse)(input).or(Err(()))?.1)
+    }
+}
+
+impl Parsable for Sink {
+    fn parse(input: &str) -> IResult<&str, Sink> {
+        let (input, sel) = opt(alt((tag("!"), eof)))(input)?;
+
+        match sel {
+            Some("") => Ok((input, Sink::Filename)),
+            None => Ok(("", Sink::File(input.to_string()))),
+            Some("!") => Ok(("", Sink::Command(input.trim().to_string()))),
+
+            _ => unreachable!(),
+        }
     }
 }
