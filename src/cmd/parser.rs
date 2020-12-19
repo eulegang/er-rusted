@@ -12,7 +12,6 @@ use nom::{
     bytes::complete::{escaped, is_not, tag},
     character::complete::{digit1, multispace0, one_of},
     combinator::{all_consuming, cond, eof, opt},
-    sequence::preceded,
     IResult,
 };
 
@@ -142,30 +141,35 @@ impl Parsable for Command {
 
             Some('s') => {
                 let (input, sep) = one_of("/^:?")(input)?;
-                let (input, re_str) = escaped(
+                let (input, re_str) = opt(escaped(
                     is_not(&*format!("{}\\", sep)),
                     '\\',
                     one_of("\\.+*?()|[]{}^$?\"/dDwWsS"),
-                )(input)?;
-
-                let re = Re::from_str(re_str).or(Err(nom::Err::Error(nom::error::Error::new(
-                    input,
-                    nom::error::ErrorKind::Fix,
-                ))))?;
-
-                let (input, pat_str) = opt(preceded(
-                    one_of(&*sep.to_string()),
-                    escaped(is_not(&*format!("{}\\", sep)), '\\', one_of("\\&%")),
                 ))(input)?;
 
-                let pat =
-                    pat_str
-                        .map(|s| Pat::from_str(s))
-                        .transpose()
-                        .or(Err(nom::Err::Error(nom::error::Error::new(
-                            input,
-                            nom::error::ErrorKind::Fix,
-                        ))))?;
+                let re = re_str
+                    .map(Re::from_str)
+                    .transpose()
+                    .or(Err(nom::Err::Error(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Fix,
+                    ))))?;
+
+                let (input, prepat) = opt(one_of(&*sep.to_string()))(input)?;
+
+                let (input, pat_str) = opt(escaped(
+                    is_not(&*format!("{}\\", sep)),
+                    '\\',
+                    one_of("\\&%"),
+                ))(input)?;
+
+                let pat = if prepat.is_some() {
+                    Some(Pat::from_str(pat_str.unwrap_or("")).or(Err(nom::Err::Error(
+                        nom::error::Error::new(input, nom::error::ErrorKind::Fix),
+                    )))?)
+                } else {
+                    None
+                };
 
                 let (input, flags_sep) = opt(tag(&*format!("{}", sep)))(input)?;
 
@@ -187,7 +191,7 @@ impl Parsable for Command {
                 });
 
                 let addr = addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)));
-                Ok((input, Command::Subst(addr, Some(re), pat, flags)))
+                Ok((input, Command::Subst(addr, re, pat, flags)))
             }
 
             _ => unreachable!(),

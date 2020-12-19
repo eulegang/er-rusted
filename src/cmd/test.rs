@@ -160,6 +160,148 @@ mod parse {
         }
     }
 
+    mod subst {
+        use super::*;
+        use crate::cmd::SubstFlags;
+        use crate::re::Pat;
+
+        #[test]
+        fn default() {
+            assert_parse!(
+                "s/./-/",
+                Command::Subst(
+                    Address::Line(Offset::Nil(Point::Current)),
+                    Some(re!(".")),
+                    Some(Pat::from_str("-").unwrap()),
+                    Some(SubstFlags {
+                        occurances: 1,
+                        print: false
+                    })
+                )
+            );
+        }
+
+        #[test]
+        fn delete_space() {
+            assert_parse!(
+                "s/ //",
+                Command::Subst(
+                    Address::Line(Offset::Nil(Point::Current)),
+                    Some(re!(" ")),
+                    Some(Pat::from_str("").unwrap()),
+                    Some(SubstFlags {
+                        occurances: 1,
+                        print: false
+                    })
+                )
+            );
+        }
+
+        #[test]
+        fn invalid_flags() {
+            refute_parse!("s/ //10g");
+        }
+
+        #[test]
+        fn flags() {
+            assert_parse!(
+                "s/ //10",
+                Command::Subst(
+                    Address::Line(Offset::Nil(Point::Current)),
+                    Some(re!(" ")),
+                    Some(Pat::from_str("").unwrap()),
+                    Some(SubstFlags {
+                        occurances: 10,
+                        print: false
+                    })
+                )
+            );
+
+            assert_parse!(
+                "s/ //10p",
+                Command::Subst(
+                    Address::Line(Offset::Nil(Point::Current)),
+                    Some(re!(" ")),
+                    Some(Pat::from_str("").unwrap()),
+                    Some(SubstFlags {
+                        occurances: 10,
+                        print: true
+                    })
+                )
+            );
+
+            assert_parse!(
+                "s/ //10p",
+                Command::Subst(
+                    Address::Line(Offset::Nil(Point::Current)),
+                    Some(re!(" ")),
+                    Some(Pat::from_str("").unwrap()),
+                    Some(SubstFlags {
+                        occurances: 10,
+                        print: true
+                    })
+                )
+            );
+
+            assert_parse!(
+                "s/ //gp",
+                Command::Subst(
+                    Address::Line(Offset::Nil(Point::Current)),
+                    Some(re!(" ")),
+                    Some(Pat::from_str("").unwrap()),
+                    Some(SubstFlags {
+                        occurances: 0,
+                        print: true
+                    })
+                )
+            );
+            assert_parse!(
+                "s/ //p",
+                Command::Subst(
+                    Address::Line(Offset::Nil(Point::Current)),
+                    Some(re!(" ")),
+                    Some(Pat::from_str("").unwrap()),
+                    Some(SubstFlags {
+                        occurances: 1,
+                        print: true
+                    })
+                )
+            );
+        }
+
+        #[test]
+        fn test_prev_pat() {
+            assert_parse!(
+                "s/.*/%/",
+                Command::Subst(
+                    Address::Line(Offset::Nil(Point::Current)),
+                    Some(re!(".*")),
+                    Some(Pat::Replay),
+                    Some(SubstFlags {
+                        occurances: 1,
+                        print: false
+                    })
+                )
+            );
+        }
+
+        #[test]
+        fn test_prev_regex() {
+            assert_parse!(
+                "s//foobar/",
+                Command::Subst(
+                    Address::Line(Offset::Nil(Point::Current)),
+                    None,
+                    Some(Pat::from_str("foobar").unwrap()),
+                    Some(SubstFlags {
+                        occurances: 1,
+                        print: false
+                    })
+                )
+            );
+        }
+    }
+
     mod write {
         use super::*;
 
