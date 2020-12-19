@@ -302,6 +302,48 @@ mod parse {
         }
     }
 
+    mod yank {
+        use super::*;
+
+        #[test]
+        fn default() {
+            assert_parse!(
+                "y",
+                Command::Yank(Address::Line(Offset::Nil(Point::Current)),)
+            );
+        }
+
+        #[test]
+        fn with_address() {
+            assert_parse!(
+                "1,$y",
+                Command::Yank(Address::Range {
+                    start: Offset::Nil(Point::Abs(1)),
+                    end: Offset::Nil(Point::Last),
+                })
+            );
+        }
+    }
+
+    mod paste {
+        use super::*;
+
+        #[test]
+        fn default() {
+            assert_parse!("x", Command::Paste(Offset::Nil(Point::Current)));
+        }
+
+        #[test]
+        fn with_line() {
+            assert_parse!("-5x", Command::Paste(Offset::Relb(Point::Current, 5)));
+        }
+
+        #[test]
+        fn no_address() {
+            refute_parse!("-5,$x");
+        }
+    }
+
     mod write {
         use super::*;
 
@@ -345,6 +387,15 @@ mod parse {
                     Sink::Command("rustfmt %".to_string())
                 ))
             );
+        }
+    }
+
+    mod quit {
+        use super::*;
+
+        #[test]
+        fn default() {
+            assert_parse!("q", Command::Quit);
         }
     }
 }
