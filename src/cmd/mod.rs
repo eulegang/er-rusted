@@ -6,7 +6,7 @@ use crate::{
 
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Write};
-use std::process::{Command as Cmd, Stdio};
+use std::process::{Command as SysCmd, Stdio};
 
 mod action;
 mod parser;
@@ -56,7 +56,12 @@ pub struct SubstFlags {
 pub enum SysPoint {
     Filename,
     File(String),
-    Command(String),
+    Command(Cmd),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Cmd {
+    System(String),
 }
 
 pub trait Syncer {
@@ -86,73 +91,36 @@ impl Default for SubstFlags {
 
 impl Syncer for SysPoint {
     fn sync(&self, filename: Option<&str>, lines: &[String]) -> CommandResult {
+        fn sync_file(name: &str, lines: &[String]) -> CommandResult {
+            if let Ok(mut file) = OpenOptions::new()
+                .truncate(true)
+                .write(true)
+                .create(true)
+                .open(name)
+            {
+                for line in lines {
+                    if let Err(_) = writeln!(file, "{}", line) {
+                        return CommandResult::Failed;
+                    }
+                }
+
+                CommandResult::Success
+            } else {
+                CommandResult::Failed
+            }
+        }
+
         match self {
             SysPoint::Filename => {
                 if let Some(filename) = filename {
-                    if let Ok(mut file) = OpenOptions::new()
-                        .truncate(true)
-                        .write(true)
-                        .create(true)
-                        .open(filename)
-                    {
-                        for line in lines {
-                            if let Err(_) = writeln!(file, "{}", line) {
-                                return CommandResult::Failed;
-                            }
-                        }
-
-                        CommandResult::Success
-                    } else {
-                        CommandResult::Failed
-                    }
+                    sync_file(filename, lines)
                 } else {
                     CommandResult::Failed
                 }
             }
 
-            SysPoint::File(name) => {
-                if let Ok(mut file) = OpenOptions::new()
-                    .truncate(true)
-                    .write(true)
-                    .create(true)
-                    .open(name)
-                {
-                    for line in lines {
-                        if let Err(_) = writeln!(file, "{}", line) {
-                            return CommandResult::Failed;
-                        }
-                    }
-
-                    CommandResult::Success
-                } else {
-                    CommandResult::Failed
-                }
-            }
-
-            SysPoint::Command(command) => {
-                let rchild = Cmd::new("sh")
-                    .arg("-c")
-                    .arg(replace_file(command, filename))
-                    .stdin(Stdio::piped())
-                    .spawn();
-
-                if let Ok(mut child) = rchild {
-                    let mut stdin = child.stdin.take().unwrap();
-                    for line in lines {
-                        if let Err(_) = writeln!(stdin, "{}", line) {
-                            return CommandResult::Failed;
-                        }
-                    }
-
-                    if matches!(child.wait(), Err(_)) {
-                        return CommandResult::Failed;
-                    };
-
-                    CommandResult::Success
-                } else {
-                    CommandResult::Failed
-                }
-            }
+            SysPoint::File(name) => sync_file(name, lines),
+            SysPoint::Command(command) => command.sync(filename, lines),
         }
     }
 }
@@ -192,73 +160,110 @@ impl Sourcer for SysPoint {
             }
 
             SysPoint::File(file) => src_file(file),
-            SysPoint::Command(command) => {
-                let rchild = Cmd::new("sh")
-                    .arg("-c")
-                    .arg(replace_file(command, filename))
-                    .stdout(Stdio::piped())
-                    .spawn();
-
-                if let Ok(mut child) = rchild {
-                    let stdout = child.stdout.take().unwrap();
-                    let mut reader = BufReader::new(stdout);
-                    let mut buffer = String::new();
-                    let mut lines = Vec::new();
-
-                    let lines = loop {
-                        let read = reader.read_line(&mut buffer);
-
-                        match read {
-                            Ok(0) => break Ok(dbg!(lines)),
-                            Err(_) => break Err(CommandResult::Failed),
-                            _ => {
-                                chomp(&mut buffer);
-                                lines.push(buffer);
-                                buffer = String::new();
-                            }
-                        }
-                    };
-
-                    if matches!(child.wait(), Err(_)) {
-                        return Err(CommandResult::Failed);
-                    } else {
-                        lines
-                    }
-                } else {
-                    Err(CommandResult::Failed)
-                }
-            }
+            SysPoint::Command(command) => command.source(filename),
         }
     }
 }
 
-pub fn replace_file(expr: &str, filename: Option<&str>) -> String {
-    let mut buf = String::with_capacity(expr.len());
-    let mut toggle = false;
+impl Syncer for Cmd {
+    fn sync(&self, filename: Option<&str>, lines: &[String]) -> CommandResult {
+        let rchild = SysCmd::new("sh")
+            .arg("-c")
+            .arg(self.replace_filename(filename))
+            .stdin(Stdio::piped())
+            .spawn();
 
-    for ch in expr.chars() {
-        match (toggle, ch) {
-            (false, '\\') => toggle = true,
-            (true, '\\') => {
-                buf.push(ch);
-                toggle = false;
+        if let Ok(mut child) = rchild {
+            let mut stdin = child.stdin.take().unwrap();
+            for line in lines {
+                if let Err(_) = writeln!(stdin, "{}", line) {
+                    return CommandResult::Failed;
+                }
             }
 
-            (false, '%') => {
-                buf.push_str(filename.unwrap_or(""));
-            }
+            if matches!(child.wait(), Err(_)) {
+                return CommandResult::Failed;
+            };
 
-            (true, '%') => {
-                buf.push('%');
-            }
-
-            (false, otherwise) => buf.push(otherwise),
-            (true, otherwise) => {
-                buf.push('\\');
-                buf.push(otherwise);
-            }
+            CommandResult::Success
+        } else {
+            CommandResult::Failed
         }
     }
+}
 
-    buf
+impl Sourcer for Cmd {
+    fn source(&self, filename: Option<&str>) -> Result<Vec<String>, CommandResult> {
+        let rchild = SysCmd::new("sh")
+            .arg("-c")
+            .arg(self.replace_filename(filename))
+            .stdout(Stdio::piped())
+            .spawn();
+
+        if let Ok(mut child) = rchild {
+            let stdout = child.stdout.take().unwrap();
+            let mut reader = BufReader::new(stdout);
+            let mut buffer = String::new();
+            let mut lines = Vec::new();
+
+            let lines = loop {
+                let read = reader.read_line(&mut buffer);
+
+                match read {
+                    Ok(0) => break Ok(dbg!(lines)),
+                    Err(_) => break Err(CommandResult::Failed),
+                    _ => {
+                        chomp(&mut buffer);
+                        lines.push(buffer);
+                        buffer = String::new();
+                    }
+                }
+            };
+
+            if matches!(child.wait(), Err(_)) {
+                return Err(CommandResult::Failed);
+            } else {
+                lines
+            }
+        } else {
+            Err(CommandResult::Failed)
+        }
+    }
+}
+
+impl Cmd {
+    fn replace_filename(&self, filename: Option<&str>) -> String {
+        let expr = match self {
+            Cmd::System(expr) => expr,
+        };
+
+        let mut buf = String::with_capacity(expr.len());
+        let mut toggle = false;
+
+        for ch in expr.chars() {
+            match (toggle, ch) {
+                (false, '\\') => toggle = true,
+                (true, '\\') => {
+                    buf.push(ch);
+                    toggle = false;
+                }
+
+                (false, '%') => {
+                    buf.push_str(filename.unwrap_or(""));
+                }
+
+                (true, '%') => {
+                    buf.push('%');
+                }
+
+                (false, otherwise) => buf.push(otherwise),
+                (true, otherwise) => {
+                    buf.push('\\');
+                    buf.push(otherwise);
+                }
+            }
+        }
+
+        buf
+    }
 }

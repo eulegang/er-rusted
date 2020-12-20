@@ -1,4 +1,4 @@
-use super::{Command, SysPoint};
+use super::{Cmd, Command, SysPoint};
 use crate::{
     addr::{Address, Offset, Point},
     cmd::SubstFlags,
@@ -229,7 +229,7 @@ impl Parsable for SysPoint {
         match sel {
             Some("") => Ok((input, SysPoint::Filename)),
             None => Ok(("", SysPoint::File(input.to_string()))),
-            Some("!") => Ok(("", SysPoint::Command(input.trim().to_string()))),
+            Some("!") => Ok(("", SysPoint::Command(Cmd::System(input.trim().to_string())))),
 
             _ => unreachable!(),
         }

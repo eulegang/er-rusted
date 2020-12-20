@@ -1,6 +1,6 @@
 use crate::{
     addr::{Address, Offset, Point},
-    cmd::{Command, SysPoint},
+    cmd::{Cmd, Command, SysPoint},
     Parsable,
 };
 
@@ -401,7 +401,7 @@ mod parse {
                         start: Offset::Nil(Point::Abs(1)),
                         end: Offset::Nil(Point::Last),
                     },
-                    SysPoint::Command("rustfmt %".to_string()),
+                    SysPoint::Command(Cmd::System("rustfmt %".to_string())),
                     false
                 ))
             );
@@ -416,7 +416,7 @@ mod parse {
                         start: Offset::Nil(Point::Abs(1)),
                         end: Offset::Nil(Point::Last),
                     },
-                    SysPoint::Command("rustfmt %".to_string()),
+                    SysPoint::Command(Cmd::System("rustfmt %".to_string())),
                     true
                 ))
             );
@@ -434,27 +434,27 @@ mod parse {
 }
 
 mod util {
-    use crate::cmd::replace_file;
+    use crate::cmd::Cmd;
 
     #[test]
     fn replace_default() {
         assert_eq!(
-            &replace_file("rustfmt %", Some("src/lib.rs")),
+            &Cmd::System("rustfmt %".to_string()).replace_filename(Some("src/lib.rs")),
             "rustfmt src/lib.rs"
         );
 
         assert_eq!(
-            &replace_file("rustfmt \\%", Some("src/lib.rs")),
+            &Cmd::System("rustfmt \\%".to_string()).replace_filename(Some("src/lib.rs")),
             "rustfmt %"
         );
 
         assert_eq!(
-            &replace_file("rustfmt \\\\%", Some("src/lib.rs")),
+            &Cmd::System("rustfmt \\\\%".to_string()).replace_filename(Some("src/lib.rs")),
             "rustfmt \\src/lib.rs"
         );
 
         assert_eq!(
-            &replace_file("rustfmt \\\\\\%", Some("src/lib.rs")),
+            &Cmd::System("rustfmt \\\\\\%".to_string()).replace_filename(Some("src/lib.rs")),
             "rustfmt \\%"
         );
     }
