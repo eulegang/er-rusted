@@ -140,7 +140,7 @@ impl Buffer {
     }
 }
 
-fn chomp(line: &mut String) {
+pub fn chomp(line: &mut String) {
     let bytes = line.as_bytes();
     let has_nl = bytes.len() > 0 && bytes[bytes.len() - 1] == 10;
     let has_cr = bytes.len() > 1 && bytes[bytes.len() - 2] == 13;

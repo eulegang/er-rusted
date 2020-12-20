@@ -1,10 +1,11 @@
 use crate::{
     addr::{Address, Offset},
+    buffer::chomp,
     re::{Pat, Re},
 };
 
 use std::fs::OpenOptions;
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::process::{Command as Cmd, Stdio};
 
 mod action;
@@ -36,6 +37,7 @@ pub enum Command {
     Paste(Offset),
 
     Write(Address, Sink),
+    Read(Offset, Src),
 
     Quit,
 
@@ -52,6 +54,13 @@ pub struct SubstFlags {
 
 #[derive(Debug, PartialEq)]
 pub enum Sink {
+    Filename,
+    File(String),
+    Command(String),
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Src {
     Filename,
     File(String),
     Command(String),
@@ -141,6 +150,81 @@ impl Sink {
                     CommandResult::Success
                 } else {
                     CommandResult::Failed
+                }
+            }
+        }
+    }
+}
+
+impl Src {
+    fn source_lines(&self, filename: Option<&str>) -> Result<Vec<String>, CommandResult> {
+        fn src_file(filename: &str) -> Result<Vec<String>, CommandResult> {
+            if let Ok(file) = OpenOptions::new().read(true).open(filename) {
+                let mut reader = BufReader::new(file);
+                let mut buffer = String::new();
+                let mut lines = Vec::new();
+                loop {
+                    let read = reader.read_line(&mut buffer);
+
+                    match read {
+                        Ok(0) => break Ok(lines),
+                        Err(_) => break Err(CommandResult::Failed),
+                        _ => {
+                            chomp(&mut buffer);
+                            lines.push(buffer);
+                            buffer = String::new();
+                        }
+                    }
+                }
+            } else {
+                Err(CommandResult::Failed)
+            }
+        }
+
+        match self {
+            Src::Filename => {
+                if let Some(filename) = filename {
+                    src_file(filename)
+                } else {
+                    Err(CommandResult::Failed)
+                }
+            }
+
+            Src::File(file) => src_file(file),
+            Src::Command(command) => {
+                let rchild = Cmd::new("sh")
+                    .arg("-c")
+                    .arg(replace_file(command, filename))
+                    .stdout(Stdio::piped())
+                    .spawn();
+
+                if let Ok(mut child) = rchild {
+                    let stdout = child.stdout.take().unwrap();
+                    let mut reader = BufReader::new(stdout);
+                    let mut buffer = String::new();
+                    let mut lines = Vec::new();
+
+                    let lines = loop {
+                        let read = reader.read_line(&mut buffer);
+
+                        match read {
+                            Ok(0) => break Ok(dbg!(lines)),
+                            Err(_) => break Err(CommandResult::Failed),
+                            _ => {
+                                chomp(&mut buffer);
+                                lines.push(buffer);
+                                buffer = String::new();
+                            }
+                        }
+                    };
+
+                    if matches!(child.wait(), Err(_)) {
+                        return Err(CommandResult::Failed);
+                    } else {
+                        lines
+                    }
+                } else {
+                    Err(CommandResult::Failed)
                 }
             }
         }

@@ -114,6 +114,23 @@ impl Command {
                 }
             }
 
+            Read(offset, src) => {
+                if let Some(line) = offset.resolve_line(interp) {
+                    match src.source_lines(interp.filename.as_deref()) {
+                        Ok(lines) => {
+                            if interp.buffer.append(line, lines) {
+                                CommandResult::Success
+                            } else {
+                                CommandResult::Failed
+                            }
+                        }
+                        Err(err) => err,
+                    }
+                } else {
+                    CommandResult::Failed
+                }
+            }
+
             Subst(addr, re, pat, flags) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     let flags = flags.unwrap_or_else(|| {

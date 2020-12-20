@@ -1,4 +1,4 @@
-use super::{Command, Sink};
+use super::{Command, Sink, Src};
 use crate::{
     addr::{Address, Offset, Point},
     cmd::SubstFlags,
@@ -19,7 +19,7 @@ impl Parsable for Command {
     fn parse(input: &str) -> IResult<&str, Command> {
         let (input, addr) = opt(Address::parse)(input)?;
 
-        let (input, op) = opt(one_of("pdacikjqmtyxsw"))(input)?;
+        let (input, op) = opt(one_of("pdacikjqmtyxswr"))(input)?;
 
         match op {
             Some('p') => Ok((
@@ -55,6 +55,20 @@ impl Parsable for Command {
                 });
 
                 Ok((input, Command::Write(addr, sink)))
+            }
+
+            Some('r') => {
+                let (input, _) = multispace0(input)?;
+                let (input, src) = Src::parse(input)?;
+
+                match addr {
+                    Some(Address::Line(offset)) => Ok((input, Command::Read(offset, src))),
+                    None => Ok((input, Command::Read(Offset::Nil(Point::Last), src))),
+                    Some(_) => Err(nom::Err::Error(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Fix,
+                    ))),
+                }
             }
 
             Some('q') => Ok((input, Command::Quit)),
@@ -215,6 +229,20 @@ impl Parsable for Sink {
             Some("") => Ok((input, Sink::Filename)),
             None => Ok(("", Sink::File(input.to_string()))),
             Some("!") => Ok(("", Sink::Command(input.trim().to_string()))),
+
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Parsable for Src {
+    fn parse(input: &str) -> IResult<&str, Src> {
+        let (input, sel) = opt(alt((tag("!"), eof)))(input)?;
+
+        match sel {
+            Some("") => Ok((input, Src::Filename)),
+            None => Ok(("", Src::File(input.to_string()))),
+            Some("!") => Ok(("", Src::Command(input.trim().to_string()))),
 
             _ => unreachable!(),
         }
