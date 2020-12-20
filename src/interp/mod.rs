@@ -6,7 +6,7 @@ use crate::{
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::io;
+use std::io::{self, ErrorKind};
 
 pub struct Interpreter {
     pub(crate) buffer: Buffer,
@@ -25,9 +25,14 @@ impl Interpreter {
         let cut = Vec::new();
 
         let (filename, buffer) = if let Some(file) = files.get(0) {
-            (Some(file.clone()), Buffer::read(File::open(file)?)?)
+            let buffer = match File::open(file) {
+                Ok(f) => Buffer::read(f)?,
+                Err(e) if e.kind() == ErrorKind::NotFound => Buffer::default(),
+                Err(e) => Err(e)?,
+            };
+            (Some(file.clone()), buffer)
         } else {
-            (None, Buffer::read("".as_bytes())?)
+            (None, Buffer::default())
         };
 
         let last_re = None;

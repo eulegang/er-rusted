@@ -14,6 +14,15 @@ pub struct Buffer {
     pub(crate) lines: Vec<String>,
 }
 
+impl Default for Buffer {
+    fn default() -> Buffer {
+        let cur = 1;
+        let lines = vec![];
+
+        Buffer { cur, lines }
+    }
+}
+
 impl Buffer {
     /// Create a Buffer from a read
     pub fn read(r: impl Read) -> io::Result<Buffer> {
