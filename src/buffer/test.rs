@@ -76,7 +76,12 @@ mod insert {
         let mut buffer = Buffer::read(SAMPLE_TEXT.as_bytes()).unwrap();
 
         assert!(!buffer.insert(15, vec!["foo".to_string(), "bar".to_string()]));
-        assert!(!buffer.insert(5, vec!["foo".to_string(), "bar".to_string()]));
+
+        assert!(
+            !buffer.insert(5, vec!["foo".to_string(), "bar".to_string()]),
+            "buffer: {:?}",
+            buffer
+        );
     }
 }
 

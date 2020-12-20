@@ -5,6 +5,7 @@ use std::vec::Drain;
 mod test;
 
 /// A buffer representing a file being edited
+#[derive(Debug)]
 pub struct Buffer {
     /// 1-based indexing in lines
     pub(crate) cur: usize,
@@ -89,7 +90,7 @@ impl Buffer {
     pub fn insert(&mut self, line: usize, lines: Vec<String>) -> bool {
         let realign = line.checked_sub(1).unwrap_or(0);
 
-        if realign < self.lines.len() {
+        if realign < self.lines.len() || (realign == 0 && self.lines.len() == 0) {
             self.cur = realign + lines.len();
             self.lines.splice(realign..realign, lines);
             true
