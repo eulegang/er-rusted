@@ -1,6 +1,6 @@
 use crate::{
     addr::{Address, Offset, Point},
-    cmd::{Command, Sink},
+    cmd::{Command, SysPoint},
     Parsable,
 };
 
@@ -356,7 +356,7 @@ mod parse {
                         start: Offset::Nil(Point::Abs(1)),
                         end: Offset::Nil(Point::Last),
                     },
-                    Sink::Filename,
+                    SysPoint::Filename,
                     false
                 ))
             );
@@ -371,7 +371,7 @@ mod parse {
                         start: Offset::Nil(Point::Abs(1)),
                         end: Offset::Nil(Point::Last),
                     },
-                    Sink::Filename,
+                    SysPoint::Filename,
                     true
                 ))
             );
@@ -386,7 +386,7 @@ mod parse {
                         start: Offset::Nil(Point::Abs(1)),
                         end: Offset::Nil(Point::Last),
                     },
-                    Sink::File("foobar.txt".to_string()),
+                    SysPoint::File("foobar.txt".to_string()),
                     false
                 ))
             );
@@ -401,7 +401,7 @@ mod parse {
                         start: Offset::Nil(Point::Abs(1)),
                         end: Offset::Nil(Point::Last),
                     },
-                    Sink::Command("rustfmt %".to_string()),
+                    SysPoint::Command("rustfmt %".to_string()),
                     false
                 ))
             );
@@ -416,7 +416,7 @@ mod parse {
                         start: Offset::Nil(Point::Abs(1)),
                         end: Offset::Nil(Point::Last),
                     },
-                    Sink::Command("rustfmt %".to_string()),
+                    SysPoint::Command("rustfmt %".to_string()),
                     true
                 ))
             );

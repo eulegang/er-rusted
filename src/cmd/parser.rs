@@ -1,4 +1,4 @@
-use super::{Command, Sink, Src};
+use super::{Command, SysPoint};
 use crate::{
     addr::{Address, Offset, Point},
     cmd::SubstFlags,
@@ -48,7 +48,7 @@ impl Parsable for Command {
             Some('w') => {
                 let (input, q) = opt(one_of("q"))(input)?;
                 let (input, _) = multispace0(input)?;
-                let (input, sink) = Sink::parse(input)?;
+                let (input, sink) = SysPoint::parse(input)?;
 
                 let addr = addr.unwrap_or(Address::Range {
                     start: Offset::Nil(Point::Abs(1)),
@@ -60,7 +60,7 @@ impl Parsable for Command {
 
             Some('r') => {
                 let (input, _) = multispace0(input)?;
-                let (input, src) = Src::parse(input)?;
+                let (input, src) = SysPoint::parse(input)?;
 
                 match addr {
                     Some(Address::Line(offset)) => Ok((input, Command::Read(offset, src))),
@@ -222,28 +222,14 @@ impl FromStr for Command {
     }
 }
 
-impl Parsable for Sink {
-    fn parse(input: &str) -> IResult<&str, Sink> {
+impl Parsable for SysPoint {
+    fn parse(input: &str) -> IResult<&str, SysPoint> {
         let (input, sel) = opt(alt((tag("!"), eof)))(input)?;
 
         match sel {
-            Some("") => Ok((input, Sink::Filename)),
-            None => Ok(("", Sink::File(input.to_string()))),
-            Some("!") => Ok(("", Sink::Command(input.trim().to_string()))),
-
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl Parsable for Src {
-    fn parse(input: &str) -> IResult<&str, Src> {
-        let (input, sel) = opt(alt((tag("!"), eof)))(input)?;
-
-        match sel {
-            Some("") => Ok((input, Src::Filename)),
-            None => Ok(("", Src::File(input.to_string()))),
-            Some("!") => Ok(("", Src::Command(input.trim().to_string()))),
+            Some("") => Ok((input, SysPoint::Filename)),
+            None => Ok(("", SysPoint::File(input.to_string()))),
+            Some("!") => Ok(("", SysPoint::Command(input.trim().to_string()))),
 
             _ => unreachable!(),
         }

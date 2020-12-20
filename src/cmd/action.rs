@@ -101,10 +101,10 @@ impl Command {
                 }
             }
 
-            Write(addr, sink, quit) => {
+            Write(addr, syncer, quit) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     if let Some(lines) = interp.buffer.range(start, end) {
-                        sink.sink_lines(interp.filename.as_deref(), &lines);
+                        syncer.sync(interp.filename.as_deref(), &lines);
                         if *quit {
                             CommandResult::Success
                         } else {
@@ -120,7 +120,7 @@ impl Command {
 
             Read(offset, src) => {
                 if let Some(line) = offset.resolve_line(interp) {
-                    match src.source_lines(interp.filename.as_deref()) {
+                    match src.source(interp.filename.as_deref()) {
                         Ok(lines) => {
                             if interp.buffer.append(line, lines) {
                                 CommandResult::Success

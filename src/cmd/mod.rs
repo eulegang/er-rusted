@@ -36,8 +36,8 @@ pub enum Command {
     Yank(Address),
     Paste(Offset),
 
-    Write(Address, Sink, bool),
-    Read(Offset, Src),
+    Write(Address, SysPoint, bool),
+    Read(Offset, SysPoint),
 
     Quit,
 
@@ -53,17 +53,18 @@ pub struct SubstFlags {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Sink {
+pub enum SysPoint {
     Filename,
     File(String),
     Command(String),
 }
 
-#[derive(Debug, PartialEq)]
-pub enum Src {
-    Filename,
-    File(String),
-    Command(String),
+pub trait Syncer {
+    fn sync(&self, filename: Option<&str>, lines: &[String]) -> CommandResult;
+}
+
+pub trait Sourcer {
+    fn source(&self, filename: Option<&str>) -> Result<Vec<String>, CommandResult>;
 }
 
 impl Command {
@@ -83,10 +84,10 @@ impl Default for SubstFlags {
     }
 }
 
-impl Sink {
-    pub fn sink_lines(&self, filename: Option<&str>, lines: &[String]) -> CommandResult {
+impl Syncer for SysPoint {
+    fn sync(&self, filename: Option<&str>, lines: &[String]) -> CommandResult {
         match self {
-            Sink::Filename => {
+            SysPoint::Filename => {
                 if let Some(filename) = filename {
                     if let Ok(mut file) = OpenOptions::new()
                         .truncate(true)
@@ -109,7 +110,7 @@ impl Sink {
                 }
             }
 
-            Sink::File(name) => {
+            SysPoint::File(name) => {
                 if let Ok(mut file) = OpenOptions::new()
                     .truncate(true)
                     .write(true)
@@ -128,7 +129,7 @@ impl Sink {
                 }
             }
 
-            Sink::Command(command) => {
+            SysPoint::Command(command) => {
                 let rchild = Cmd::new("sh")
                     .arg("-c")
                     .arg(replace_file(command, filename))
@@ -156,8 +157,8 @@ impl Sink {
     }
 }
 
-impl Src {
-    fn source_lines(&self, filename: Option<&str>) -> Result<Vec<String>, CommandResult> {
+impl Sourcer for SysPoint {
+    fn source(&self, filename: Option<&str>) -> Result<Vec<String>, CommandResult> {
         fn src_file(filename: &str) -> Result<Vec<String>, CommandResult> {
             if let Ok(file) = OpenOptions::new().read(true).open(filename) {
                 let mut reader = BufReader::new(file);
@@ -182,7 +183,7 @@ impl Src {
         }
 
         match self {
-            Src::Filename => {
+            SysPoint::Filename => {
                 if let Some(filename) = filename {
                     src_file(filename)
                 } else {
@@ -190,8 +191,8 @@ impl Src {
                 }
             }
 
-            Src::File(file) => src_file(file),
-            Src::Command(command) => {
+            SysPoint::File(file) => src_file(file),
+            SysPoint::Command(command) => {
                 let rchild = Cmd::new("sh")
                     .arg("-c")
                     .arg(replace_file(command, filename))
