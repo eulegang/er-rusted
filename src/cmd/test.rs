@@ -356,7 +356,23 @@ mod parse {
                         start: Offset::Nil(Point::Abs(1)),
                         end: Offset::Nil(Point::Last),
                     },
-                    Sink::Filename
+                    Sink::Filename,
+                    false
+                ))
+            );
+        }
+
+        #[test]
+        fn default_and_quit() {
+            assert_eq!(
+                Command::from_str("wq"),
+                Ok(Command::Write(
+                    Address::Range {
+                        start: Offset::Nil(Point::Abs(1)),
+                        end: Offset::Nil(Point::Last),
+                    },
+                    Sink::Filename,
+                    true
                 ))
             );
         }
@@ -370,7 +386,8 @@ mod parse {
                         start: Offset::Nil(Point::Abs(1)),
                         end: Offset::Nil(Point::Last),
                     },
-                    Sink::File("foobar.txt".to_string())
+                    Sink::File("foobar.txt".to_string()),
+                    false
                 ))
             );
         }
@@ -384,7 +401,23 @@ mod parse {
                         start: Offset::Nil(Point::Abs(1)),
                         end: Offset::Nil(Point::Last),
                     },
-                    Sink::Command("rustfmt %".to_string())
+                    Sink::Command("rustfmt %".to_string()),
+                    false
+                ))
+            );
+        }
+
+        #[test]
+        fn specified_command_and_quit() {
+            assert_eq!(
+                Command::from_str("wq !rustfmt %"),
+                Ok(Command::Write(
+                    Address::Range {
+                        start: Offset::Nil(Point::Abs(1)),
+                        end: Offset::Nil(Point::Last),
+                    },
+                    Sink::Command("rustfmt %".to_string()),
+                    true
                 ))
             );
         }

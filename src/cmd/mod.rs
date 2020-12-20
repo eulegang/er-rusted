@@ -36,7 +36,7 @@ pub enum Command {
     Yank(Address),
     Paste(Offset),
 
-    Write(Address, Sink),
+    Write(Address, Sink, bool),
     Read(Offset, Src),
 
     Quit,

@@ -46,6 +46,7 @@ impl Parsable for Command {
             )),
 
             Some('w') => {
+                let (input, q) = opt(one_of("q"))(input)?;
                 let (input, _) = multispace0(input)?;
                 let (input, sink) = Sink::parse(input)?;
 
@@ -54,7 +55,7 @@ impl Parsable for Command {
                     end: Offset::Nil(Point::Last),
                 });
 
-                Ok((input, Command::Write(addr, sink)))
+                Ok((input, Command::Write(addr, sink, q.is_some())))
             }
 
             Some('r') => {

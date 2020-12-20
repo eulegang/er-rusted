@@ -101,11 +101,15 @@ impl Command {
                 }
             }
 
-            Write(addr, sink) => {
+            Write(addr, sink, quit) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     if let Some(lines) = interp.buffer.range(start, end) {
                         sink.sink_lines(interp.filename.as_deref(), &lines);
-                        CommandResult::Success
+                        if *quit {
+                            CommandResult::Success
+                        } else {
+                            CommandResult::Quit
+                        }
                     } else {
                         CommandResult::Failed
                     }
