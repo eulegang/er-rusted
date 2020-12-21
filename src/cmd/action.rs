@@ -135,6 +135,8 @@ impl Command {
                 }
             }
 
+            Run(cmd) => cmd.run(interp.filename.as_deref()),
+
             Subst(addr, re, pat, flags) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     let flags = flags.unwrap_or_else(|| {

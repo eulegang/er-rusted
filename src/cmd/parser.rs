@@ -19,7 +19,7 @@ impl Parsable for Command {
     fn parse(input: &str) -> IResult<&str, Command> {
         let (input, addr) = opt(Address::parse)(input)?;
 
-        let (input, op) = opt(one_of("pdacikjqmtyxswr"))(input)?;
+        let (input, op) = opt(one_of("pdacikjqmtyxswr!"))(input)?;
 
         match op {
             Some('p') => Ok((
@@ -56,6 +56,12 @@ impl Parsable for Command {
                 });
 
                 Ok((input, Command::Write(addr, sink, q.is_some())))
+            }
+
+            Some('!') => {
+                let (input, cmd) = Cmd::parse(input)?;
+
+                Ok((input, Command::Run(cmd)))
             }
 
             Some('r') => {
@@ -233,5 +239,11 @@ impl Parsable for SysPoint {
 
             _ => unreachable!(),
         }
+    }
+}
+
+impl Parsable for Cmd {
+    fn parse(input: &str) -> IResult<&str, Cmd> {
+        Ok(("", Cmd::System(input.trim().to_string())))
     }
 }

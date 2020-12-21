@@ -38,6 +38,7 @@ pub enum Command {
 
     Write(Address, SysPoint, bool),
     Read(Offset, SysPoint),
+    Run(Cmd),
 
     Quit,
 
@@ -265,5 +266,18 @@ impl Cmd {
         }
 
         buf
+    }
+
+    fn run(&self, filename: Option<&str>) -> CommandResult {
+        let status = SysCmd::new("sh")
+            .arg("-c")
+            .arg(self.replace_filename(filename))
+            .status();
+
+        if status.map_or(false, |s| s.success()) {
+            CommandResult::Success
+        } else {
+            CommandResult::Failed
+        }
     }
 }
