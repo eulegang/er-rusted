@@ -106,9 +106,9 @@ impl Command {
                     if let Some(lines) = interp.buffer.range(start, end) {
                         syncer.sync(interp.filename.as_deref(), &lines);
                         if *quit {
-                            CommandResult::Success
-                        } else {
                             CommandResult::Quit
+                        } else {
+                            CommandResult::Success
                         }
                     } else {
                         CommandResult::Failed
