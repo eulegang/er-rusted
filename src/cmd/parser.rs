@@ -11,7 +11,7 @@ use nom::{
     branch::{alt, permutation},
     bytes::complete::{escaped, is_not, tag},
     character::complete::{digit1, multispace0, one_of},
-    combinator::{all_consuming, cond, eof, opt},
+    combinator::{all_consuming, cond, opt},
     IResult,
 };
 
@@ -19,7 +19,13 @@ impl Parsable for Command {
     fn parse(input: &str) -> IResult<&str, Command> {
         let (input, addr) = opt(Address::parse)(input)?;
 
-        let (input, op) = opt(one_of("pdacikjqmtyxswr!"))(input)?;
+        if addr.is_none() {
+            if let (input, Some(cmd)) = opt(Cmd::parse)(input)? {
+                return Ok((input, Command::Run(cmd)));
+            }
+        }
+
+        let (input, op) = opt(one_of("pdacikjqmtyxswr"))(input)?;
 
         match op {
             Some('p') => Ok((
@@ -56,12 +62,6 @@ impl Parsable for Command {
                 });
 
                 Ok((input, Command::Write(addr, sink, q.is_some())))
-            }
-
-            Some('!') => {
-                let (input, cmd) = Cmd::parse(input)?;
-
-                Ok((input, Command::Run(cmd)))
             }
 
             Some('r') => {
@@ -230,20 +230,21 @@ impl FromStr for Command {
 
 impl Parsable for SysPoint {
     fn parse(input: &str) -> IResult<&str, SysPoint> {
-        let (input, sel) = opt(alt((tag("!"), eof)))(input)?;
-
-        match sel {
-            Some("") => Ok((input, SysPoint::Filename)),
-            None => Ok(("", SysPoint::File(input.to_string()))),
-            Some("!") => Ok(("", SysPoint::Command(Cmd::System(input.trim().to_string())))),
-
-            _ => unreachable!(),
+        if let (input, Some(cmd)) = opt(Cmd::parse)(input)? {
+            return Ok((input, SysPoint::Command(cmd)));
         }
+
+        if input.trim().is_empty() {
+            return Ok(("", SysPoint::Filename));
+        }
+
+        Ok(("", SysPoint::File(input.to_string())))
     }
 }
 
 impl Parsable for Cmd {
     fn parse(input: &str) -> IResult<&str, Cmd> {
+        let (input, _) = tag("!")(input)?;
         Ok(("", Cmd::System(input.trim().to_string())))
     }
 }
