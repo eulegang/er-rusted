@@ -439,23 +439,48 @@ mod util {
     #[test]
     fn replace_default() {
         assert_eq!(
-            &Cmd::System("rustfmt %".to_string()).replace_filename(Some("src/lib.rs")),
-            "rustfmt src/lib.rs"
+            Cmd::System("rustfmt %".to_string())
+                .replace_filename(Some("src/lib.rs"), None)
+                .as_deref(),
+            Some("rustfmt src/lib.rs")
         );
 
         assert_eq!(
-            &Cmd::System("rustfmt \\%".to_string()).replace_filename(Some("src/lib.rs")),
-            "rustfmt %"
+            Cmd::System("rustfmt \\%".to_string())
+                .replace_filename(Some("src/lib.rs"), None)
+                .as_deref(),
+            Some("rustfmt %")
         );
 
         assert_eq!(
-            &Cmd::System("rustfmt \\\\%".to_string()).replace_filename(Some("src/lib.rs")),
-            "rustfmt \\src/lib.rs"
+            Cmd::System("rustfmt \\\\%".to_string())
+                .replace_filename(Some("src/lib.rs"), None)
+                .as_deref(),
+            Some("rustfmt \\src/lib.rs")
         );
 
         assert_eq!(
-            &Cmd::System("rustfmt \\\\\\%".to_string()).replace_filename(Some("src/lib.rs")),
-            "rustfmt \\%"
+            Cmd::System("rustfmt \\\\\\%".to_string())
+                .replace_filename(Some("src/lib.rs"), None)
+                .as_deref(),
+            Some("rustfmt \\%")
+        );
+    }
+
+    #[test]
+    fn replace_repeat() {
+        assert_eq!(
+            Cmd::Repeat
+                .replace_filename(Some("src/lib.rs"), None)
+                .as_deref(),
+            None
+        );
+
+        assert_eq!(
+            Cmd::Repeat
+                .replace_filename(Some("src/lib.rs"), Some("rustc %"))
+                .as_deref(),
+            Some("rustc src/lib.rs")
         );
     }
 }

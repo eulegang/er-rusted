@@ -17,6 +17,10 @@ pub struct Interpreter {
     pub(crate) last_re: Option<Re>,
     pub(crate) last_pat: Option<Pat>,
     pub(crate) last_flags: Option<SubstFlags>,
+
+    pub(crate) last_cmd: Option<String>,
+    pub(crate) last_rcmd: Option<String>,
+    pub(crate) last_wcmd: Option<String>,
 }
 
 impl Interpreter {
@@ -39,6 +43,10 @@ impl Interpreter {
         let last_pat = None;
         let last_flags = None;
 
+        let last_cmd = None;
+        let last_rcmd = None;
+        let last_wcmd = None;
+
         Ok(Interpreter {
             buffer,
             marks,
@@ -47,6 +55,10 @@ impl Interpreter {
             last_re,
             last_pat,
             last_flags,
+
+            last_cmd,
+            last_rcmd,
+            last_wcmd,
         })
     }
 

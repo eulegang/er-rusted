@@ -104,12 +104,18 @@ impl Command {
             Write(addr, syncer, quit) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     if let Some(lines) = interp.buffer.range(start, end) {
-                        syncer.sync(interp.filename.as_deref(), &lines);
-                        if *quit {
+                        syncer.sync(interp, &lines);
+                        let res = if *quit {
                             CommandResult::Quit
                         } else {
                             CommandResult::Success
+                        };
+
+                        if let SysPoint::Command(Cmd::System(cmd)) = syncer {
+                            interp.last_wcmd = Some(cmd.to_string())
                         }
+
+                        res
                     } else {
                         CommandResult::Failed
                     }
@@ -120,7 +126,7 @@ impl Command {
 
             Read(offset, src) => {
                 if let Some(line) = offset.resolve_line(interp) {
-                    match src.source(interp.filename.as_deref()) {
+                    let res = match src.source(interp) {
                         Ok(lines) => {
                             if interp.buffer.append(line, lines) {
                                 CommandResult::Success
@@ -129,13 +135,27 @@ impl Command {
                             }
                         }
                         Err(err) => err,
+                    };
+
+                    if let SysPoint::Command(Cmd::System(cmd)) = src {
+                        interp.last_rcmd = Some(cmd.to_string())
                     }
+
+                    res
                 } else {
                     CommandResult::Failed
                 }
             }
 
-            Run(cmd) => cmd.run(interp.filename.as_deref()),
+            Run(cmd) => {
+                let res = cmd.run(interp);
+
+                if let Cmd::System(cmd) = cmd {
+                    interp.last_cmd = Some(cmd.to_string())
+                }
+
+                res
+            }
 
             Subst(addr, re, pat, flags) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {

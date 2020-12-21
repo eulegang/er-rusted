@@ -1,6 +1,7 @@
 use crate::{
     addr::{Address, Offset},
     buffer::chomp,
+    interp::Interpreter,
     re::{Pat, Re},
 };
 
@@ -62,15 +63,16 @@ pub enum SysPoint {
 
 #[derive(Debug, PartialEq)]
 pub enum Cmd {
+    Repeat,
     System(String),
 }
 
 pub trait Syncer {
-    fn sync(&self, filename: Option<&str>, lines: &[String]) -> CommandResult;
+    fn sync(&self, interp: &Interpreter, lines: &[String]) -> CommandResult;
 }
 
 pub trait Sourcer {
-    fn source(&self, filename: Option<&str>) -> Result<Vec<String>, CommandResult>;
+    fn source(&self, interp: &Interpreter) -> Result<Vec<String>, CommandResult>;
 }
 
 impl Command {
@@ -91,7 +93,7 @@ impl Default for SubstFlags {
 }
 
 impl Syncer for SysPoint {
-    fn sync(&self, filename: Option<&str>, lines: &[String]) -> CommandResult {
+    fn sync(&self, interp: &Interpreter, lines: &[String]) -> CommandResult {
         fn sync_file(name: &str, lines: &[String]) -> CommandResult {
             if let Ok(mut file) = OpenOptions::new()
                 .truncate(true)
@@ -113,7 +115,7 @@ impl Syncer for SysPoint {
 
         match self {
             SysPoint::Filename => {
-                if let Some(filename) = filename {
+                if let Some(filename) = &interp.filename {
                     sync_file(filename, lines)
                 } else {
                     CommandResult::Failed
@@ -121,13 +123,13 @@ impl Syncer for SysPoint {
             }
 
             SysPoint::File(name) => sync_file(name, lines),
-            SysPoint::Command(command) => command.sync(filename, lines),
+            SysPoint::Command(command) => command.sync(interp, lines),
         }
     }
 }
 
 impl Sourcer for SysPoint {
-    fn source(&self, filename: Option<&str>) -> Result<Vec<String>, CommandResult> {
+    fn source(&self, interp: &Interpreter) -> Result<Vec<String>, CommandResult> {
         fn src_file(filename: &str) -> Result<Vec<String>, CommandResult> {
             if let Ok(file) = OpenOptions::new().read(true).open(filename) {
                 let mut reader = BufReader::new(file);
@@ -153,7 +155,7 @@ impl Sourcer for SysPoint {
 
         match self {
             SysPoint::Filename => {
-                if let Some(filename) = filename {
+                if let Some(filename) = &interp.filename {
                     src_file(filename)
                 } else {
                     Err(CommandResult::Failed)
@@ -161,16 +163,24 @@ impl Sourcer for SysPoint {
             }
 
             SysPoint::File(file) => src_file(file),
-            SysPoint::Command(command) => command.source(filename),
+            SysPoint::Command(command) => command.source(interp),
         }
     }
 }
 
 impl Syncer for Cmd {
-    fn sync(&self, filename: Option<&str>, lines: &[String]) -> CommandResult {
+    fn sync(&self, interp: &Interpreter, lines: &[String]) -> CommandResult {
+        let cmd = if let Some(cmd) =
+            self.replace_filename(interp.filename.as_deref(), interp.last_wcmd.as_deref())
+        {
+            cmd
+        } else {
+            return CommandResult::Failed;
+        };
+
         let rchild = SysCmd::new("sh")
             .arg("-c")
-            .arg(self.replace_filename(filename))
+            .arg(cmd)
             .stdin(Stdio::piped())
             .spawn();
 
@@ -194,10 +204,18 @@ impl Syncer for Cmd {
 }
 
 impl Sourcer for Cmd {
-    fn source(&self, filename: Option<&str>) -> Result<Vec<String>, CommandResult> {
+    fn source(&self, interp: &Interpreter) -> Result<Vec<String>, CommandResult> {
+        let cmd = if let Some(cmd) =
+            self.replace_filename(interp.filename.as_deref(), interp.last_rcmd.as_deref())
+        {
+            cmd
+        } else {
+            return Err(CommandResult::Failed);
+        };
+
         let rchild = SysCmd::new("sh")
             .arg("-c")
-            .arg(self.replace_filename(filename))
+            .arg(cmd)
             .stdout(Stdio::piped())
             .spawn();
 
@@ -233,9 +251,15 @@ impl Sourcer for Cmd {
 }
 
 impl Cmd {
-    fn replace_filename(&self, filename: Option<&str>) -> String {
-        let expr = match self {
-            Cmd::System(expr) => expr,
+    fn replace_filename(
+        &self,
+        filename: Option<&str>,
+        prev_command: Option<&str>,
+    ) -> Option<String> {
+        let expr = match (self, prev_command) {
+            (Cmd::System(expr), _) => expr,
+            (Cmd::Repeat, Some(prev)) => prev,
+            _ => return None,
         };
 
         let mut buf = String::with_capacity(expr.len());
@@ -265,14 +289,19 @@ impl Cmd {
             }
         }
 
-        buf
+        Some(buf)
     }
 
-    fn run(&self, filename: Option<&str>) -> CommandResult {
-        let status = SysCmd::new("sh")
-            .arg("-c")
-            .arg(self.replace_filename(filename))
-            .status();
+    fn run(&self, interp: &Interpreter) -> CommandResult {
+        let cmd = if let Some(cmd) =
+            self.replace_filename(interp.filename.as_deref(), interp.last_cmd.as_deref())
+        {
+            cmd
+        } else {
+            return CommandResult::Failed;
+        };
+
+        let status = SysCmd::new("sh").arg("-c").arg(cmd).status();
 
         if status.map_or(false, |s| s.success()) {
             CommandResult::Success

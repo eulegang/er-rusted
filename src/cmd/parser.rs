@@ -245,6 +245,13 @@ impl Parsable for SysPoint {
 impl Parsable for Cmd {
     fn parse(input: &str) -> IResult<&str, Cmd> {
         let (input, _) = tag("!")(input)?;
-        Ok(("", Cmd::System(input.trim().to_string())))
+        let (input, sig) = opt(tag("!"))(input)?;
+
+        match sig {
+            Some("!") => Ok((input, Cmd::Repeat)),
+            None => Ok(("", Cmd::System(input.trim().to_string()))),
+
+            _ => unreachable!(),
+        }
     }
 }
