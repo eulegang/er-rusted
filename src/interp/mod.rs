@@ -10,6 +10,10 @@ use std::io::{self, ErrorKind};
 
 pub struct Interpreter {
     pub(crate) buffer: Buffer,
+    pub(crate) env: Env,
+}
+
+pub struct Env {
     pub(crate) marks: HashMap<char, usize>,
     pub(crate) cut: Vec<String>,
     pub(crate) filename: Option<String>,
@@ -30,9 +34,6 @@ pub enum Action {
 
 impl Interpreter {
     pub fn new(files: Vec<String>) -> io::Result<Interpreter> {
-        let marks = HashMap::new();
-        let cut = Vec::new();
-
         let (filename, buffer) = if let Some(file) = files.get(0) {
             let buffer = match File::open(file) {
                 Ok(f) => Buffer::read(f)?,
@@ -44,6 +45,27 @@ impl Interpreter {
             (None, Buffer::default())
         };
 
+        let mut env = Env::default();
+        env.filename = filename;
+
+        Ok(Interpreter { buffer, env })
+    }
+
+    pub fn exec(&mut self, cmd: Command) -> Result<Action, ()> {
+        cmd.invoke(self)
+    }
+
+    pub fn exec_with_text(&mut self, cmd: Command, text: Vec<String>) -> Result<Action, ()> {
+        cmd.invoke_with_text(self, text)
+    }
+}
+
+impl Default for Env {
+    fn default() -> Env {
+        let marks = HashMap::new();
+        let cut = Vec::new();
+        let filename = None;
+
         let last_re = None;
         let last_pat = None;
         let last_flags = None;
@@ -52,8 +74,7 @@ impl Interpreter {
         let last_rcmd = None;
         let last_wcmd = None;
 
-        Ok(Interpreter {
-            buffer,
+        Env {
             marks,
             cut,
             filename,
@@ -64,14 +85,6 @@ impl Interpreter {
             last_cmd,
             last_rcmd,
             last_wcmd,
-        })
-    }
-
-    pub fn exec(&mut self, cmd: Command) -> Result<Action, ()> {
-        cmd.invoke(self)
-    }
-
-    pub fn exec_with_text(&mut self, cmd: Command, text: Vec<String>) -> Result<Action, ()> {
-        cmd.invoke_with_text(self, text)
+        }
     }
 }

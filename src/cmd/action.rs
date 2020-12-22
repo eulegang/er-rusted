@@ -29,7 +29,7 @@ impl Command {
 
             Mark(offset, mark) => {
                 let line = offset.resolve_line(interp).ok_or(())?;
-                interp.marks.insert(*mark, line);
+                interp.env.marks.insert(*mark, line);
                 Ok(Action::Nop)
             }
 
@@ -69,13 +69,13 @@ impl Command {
 
             Yank(addr) => {
                 let (start, end) = addr.resolve_range(interp).ok_or(())?;
-                interp.cut = interp.buffer.range(start, end).ok_or(())?;
+                interp.env.cut = interp.buffer.range(start, end).ok_or(())?;
                 Ok(Action::Nop)
             }
 
             Paste(offset) => {
                 let line = offset.resolve_line(interp).ok_or(())?;
-                interp.buffer.insert(line, interp.cut.clone());
+                interp.buffer.insert(line, interp.env.cut.clone());
                 Ok(Action::Nop)
             }
 
@@ -90,7 +90,7 @@ impl Command {
                 };
 
                 if let SysPoint::Command(Cmd::System(cmd)) = syncer {
-                    interp.last_wcmd = Some(cmd.to_string())
+                    interp.env.last_wcmd = Some(cmd.to_string())
                 }
 
                 res
@@ -101,7 +101,7 @@ impl Command {
                 let res = interp.buffer.append(line, src.source(interp).ok_or(())?);
 
                 if let SysPoint::Command(Cmd::System(cmd)) = src {
-                    interp.last_rcmd = Some(cmd.to_string())
+                    interp.env.last_rcmd = Some(cmd.to_string())
                 }
 
                 if res {
@@ -115,7 +115,7 @@ impl Command {
                 let res = cmd.run(interp);
 
                 if let Cmd::System(cmd) = cmd {
-                    interp.last_cmd = Some(cmd.to_string())
+                    interp.env.last_cmd = Some(cmd.to_string())
                 }
 
                 if res {
@@ -130,18 +130,18 @@ impl Command {
 
                 let flags = flags.unwrap_or_else(|| {
                     if re.is_none() && pat.is_none() {
-                        interp.last_flags.unwrap_or_default()
+                        interp.env.last_flags.unwrap_or_default()
                     } else {
                         Default::default()
                     }
                 });
 
-                let re = match (re, &interp.last_re) {
+                let re = match (re, &interp.env.last_re) {
                     (Some(re), _) | (None, Some(re)) => re.clone(),
                     (None, None) => return Err(()),
                 };
 
-                let pat = match (pat, &interp.last_pat) {
+                let pat = match (pat, &interp.env.last_pat) {
                     (Some(Pat::Replay), None) | (None, None) => return Err(()),
                     (Some(Pat::Replay), Some(pat)) | (Some(pat), _) | (None, Some(pat)) => {
                         pat.clone()
@@ -150,8 +150,8 @@ impl Command {
 
                 let result = run_subst(interp, start, end, &re, &pat, &flags);
 
-                interp.last_re = Some(re);
-                interp.last_pat = Some(pat);
+                interp.env.last_re = Some(re);
+                interp.env.last_pat = Some(pat);
 
                 if result {
                     Ok(Action::Nop)

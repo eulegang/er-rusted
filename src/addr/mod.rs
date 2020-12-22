@@ -83,7 +83,7 @@ impl LineResolver for Point {
         match self {
             Point::Current => Some(interp.buffer.cur),
             Point::Abs(s) => Some(s.clone()),
-            Point::Mark(ch) => interp.marks.get(ch).cloned(),
+            Point::Mark(ch) => interp.env.marks.get(ch).cloned(),
             Point::Last => Some(interp.buffer.lines()),
 
             Point::Ref(re) => {

@@ -109,7 +109,7 @@ impl Syncer for SysPoint {
 
         match self {
             SysPoint::Filename => {
-                if let Some(filename) = &interp.filename {
+                if let Some(filename) = &interp.env.filename {
                     sync_file(filename, lines)
                 } else {
                     false
@@ -149,7 +149,7 @@ impl Sourcer for SysPoint {
 
         match self {
             SysPoint::Filename => {
-                if let Some(filename) = &interp.filename {
+                if let Some(filename) = &interp.env.filename {
                     src_file(filename)
                 } else {
                     None
@@ -164,9 +164,10 @@ impl Sourcer for SysPoint {
 
 impl Syncer for Cmd {
     fn sync(&self, interp: &Interpreter, lines: &[String]) -> bool {
-        let cmd = if let Some(cmd) =
-            self.replace_filename(interp.filename.as_deref(), interp.last_wcmd.as_deref())
-        {
+        let cmd = if let Some(cmd) = self.replace_filename(
+            interp.env.filename.as_deref(),
+            interp.env.last_wcmd.as_deref(),
+        ) {
             cmd
         } else {
             return false;
@@ -199,9 +200,10 @@ impl Syncer for Cmd {
 
 impl Sourcer for Cmd {
     fn source(&self, interp: &Interpreter) -> Option<Vec<String>> {
-        let cmd = if let Some(cmd) =
-            self.replace_filename(interp.filename.as_deref(), interp.last_rcmd.as_deref())
-        {
+        let cmd = if let Some(cmd) = self.replace_filename(
+            interp.env.filename.as_deref(),
+            interp.env.last_rcmd.as_deref(),
+        ) {
             cmd
         } else {
             return None;
@@ -287,9 +289,10 @@ impl Cmd {
     }
 
     fn run(&self, interp: &Interpreter) -> bool {
-        let cmd = if let Some(cmd) =
-            self.replace_filename(interp.filename.as_deref(), interp.last_cmd.as_deref())
-        {
+        let cmd = if let Some(cmd) = self.replace_filename(
+            interp.env.filename.as_deref(),
+            interp.env.last_cmd.as_deref(),
+        ) {
             cmd
         } else {
             return false;
