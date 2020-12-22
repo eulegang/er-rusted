@@ -1,46 +1,46 @@
 use super::*;
 use crate::addr::{LineResolver, RangeResolver};
-use crate::Interpreter;
+use crate::interp::{Action, Interpreter};
 use regex::Captures;
 
 impl Command {
-    pub(crate) fn invoke(&self, interp: &mut Interpreter) -> CommandResult {
+    pub(crate) fn invoke(&self, interp: &mut Interpreter) -> Result<Action, ()> {
         use Command::*;
 
         match self {
             Print(addr) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     print(interp, start, end);
-                    CommandResult::Success
+                    Ok(Action::Nop)
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
             Delete(addr) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     delete(interp, start, end);
-                    CommandResult::Success
+                    Ok(Action::Nop)
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
             Mark(offset, mark) => {
                 if let Some(line) = offset.resolve_line(interp) {
                     interp.marks.insert(*mark, line);
-                    CommandResult::Success
+                    Ok(Action::Nop)
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
             Join(addr) => {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     join(interp, start, end);
-                    CommandResult::Success
+                    Ok(Action::Nop)
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
@@ -49,16 +49,16 @@ impl Command {
                     if let Some(to) = offset.resolve_line(interp) {
                         let lines = match interp.buffer.remove(start, end) {
                             Some(d) => d.collect::<Vec<String>>(),
-                            None => return CommandResult::Failed,
+                            None => return Err(()),
                         };
 
                         interp.buffer.insert(to, lines);
-                        CommandResult::Success
+                        Ok(Action::Nop)
                     } else {
-                        CommandResult::Failed
+                        Err(())
                     }
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
@@ -67,15 +67,15 @@ impl Command {
                     if let Some(to) = offset.resolve_line(interp) {
                         if let Some(lines) = interp.buffer.range(start, end) {
                             interp.buffer.insert(to, lines);
-                            CommandResult::Success
+                            Ok(Action::Nop)
                         } else {
-                            CommandResult::Failed
+                            Err(())
                         }
                     } else {
-                        CommandResult::Failed
+                        Err(())
                     }
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
@@ -83,21 +83,21 @@ impl Command {
                 if let Some((start, end)) = addr.resolve_range(interp) {
                     if let Some(lines) = interp.buffer.range(start, end) {
                         interp.cut = lines;
-                        CommandResult::Success
+                        Ok(Action::Nop)
                     } else {
-                        CommandResult::Failed
+                        Err(())
                     }
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
             Paste(offset) => {
                 if let Some(line) = offset.resolve_line(interp) {
                     interp.buffer.insert(line, interp.cut.clone());
-                    CommandResult::Success
+                    Ok(Action::Nop)
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
@@ -106,9 +106,9 @@ impl Command {
                     if let Some(lines) = interp.buffer.range(start, end) {
                         syncer.sync(interp, &lines);
                         let res = if *quit {
-                            CommandResult::Quit
+                            Ok(Action::Quit)
                         } else {
-                            CommandResult::Success
+                            Ok(Action::Nop)
                         };
 
                         if let SysPoint::Command(Cmd::System(cmd)) = syncer {
@@ -117,24 +117,24 @@ impl Command {
 
                         res
                     } else {
-                        CommandResult::Failed
+                        Err(())
                     }
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
             Read(offset, src) => {
                 if let Some(line) = offset.resolve_line(interp) {
                     let res = match src.source(interp) {
-                        Ok(lines) => {
+                        Some(lines) => {
                             if interp.buffer.append(line, lines) {
-                                CommandResult::Success
+                                Ok(Action::Nop)
                             } else {
-                                CommandResult::Failed
+                                Err(())
                             }
                         }
-                        Err(err) => err,
+                        None => Err(()),
                     };
 
                     if let SysPoint::Command(Cmd::System(cmd)) = src {
@@ -143,7 +143,7 @@ impl Command {
 
                     res
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
@@ -154,7 +154,11 @@ impl Command {
                     interp.last_cmd = Some(cmd.to_string())
                 }
 
-                res
+                if res {
+                    Ok(Action::Nop)
+                } else {
+                    Err(())
+                }
             }
 
             Subst(addr, re, pat, flags) => {
@@ -169,11 +173,11 @@ impl Command {
 
                     let re = match (re, &interp.last_re) {
                         (Some(re), _) | (None, Some(re)) => re.clone(),
-                        (None, None) => return CommandResult::Failed,
+                        (None, None) => return Err(()),
                     };
 
                     let pat = match (pat, &interp.last_pat) {
-                        (Some(Pat::Replay), None) | (None, None) => return CommandResult::Failed,
+                        (Some(Pat::Replay), None) | (None, None) => return Err(()),
                         (Some(Pat::Replay), Some(pat)) | (Some(pat), _) | (None, Some(pat)) => {
                             pat.clone()
                         }
@@ -184,20 +188,24 @@ impl Command {
                     interp.last_re = Some(re);
                     interp.last_pat = Some(pat);
 
-                    result
+                    if result {
+                        Ok(Action::Nop)
+                    } else {
+                        Err(())
+                    }
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
-            Quit => CommandResult::Quit,
+            Quit => Ok(Action::Quit),
 
             Nop(offset) => {
                 if let Some(line) = offset.resolve_line(interp) {
                     interp.buffer.cur = line;
-                    CommandResult::Success
+                    Ok(Action::Nop)
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
@@ -209,32 +217,32 @@ impl Command {
         &self,
         interp: &mut Interpreter,
         lines: Vec<String>,
-    ) -> CommandResult {
+    ) -> Result<Action, ()> {
         use Command::*;
 
         match self {
             Append(line_ref) => {
                 if let Some(line) = line_ref.resolve_line(interp) {
                     interp.buffer.append(line, lines);
-                    CommandResult::Success
+                    Ok(Action::Nop)
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
             Insert(line_ref) => {
                 if let Some(line) = line_ref.resolve_line(interp) {
                     interp.buffer.insert(line, lines);
-                    CommandResult::Success
+                    Ok(Action::Nop)
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
             Change(line_ref) => {
                 if let Some((start, end)) = line_ref.resolve_range(interp) {
                     interp.buffer.change(start, end, lines);
-                    CommandResult::Success
+                    Ok(Action::Nop)
                 } else {
-                    CommandResult::Failed
+                    Err(())
                 }
             }
 
@@ -283,11 +291,11 @@ fn run_subst(
     re: &Re,
     pat: &Pat,
     flags: &SubstFlags,
-) -> CommandResult {
+) -> bool {
     let mut replaced = false;
 
     if !pat.compatible(re) {
-        return CommandResult::Failed;
+        return false;
     }
 
     for i in start..=end {
@@ -312,8 +320,8 @@ fn run_subst(
     }
 
     if replaced {
-        CommandResult::Success
+        true
     } else {
-        CommandResult::Failed
+        false
     }
 }

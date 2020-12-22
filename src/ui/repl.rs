@@ -1,8 +1,8 @@
 use super::*;
 
 use crate::{
-    cmd::{Command, CommandResult},
-    Interpreter,
+    cmd::Command,
+    interp::{Action, Interpreter},
 };
 use eyre::WrapErr;
 use rustyline::{error::ReadlineError, Config, EditMode, Editor, Helper};
@@ -105,9 +105,9 @@ impl Repl {
         };
 
         match result {
-            CommandResult::Failed => InvalidInvocation,
-            CommandResult::Success => Next,
-            CommandResult::Quit => Quit,
+            Err(()) => InvalidInvocation,
+            Ok(Action::Nop) => Next,
+            Ok(Action::Quit) => Quit,
         }
     }
 

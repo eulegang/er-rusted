@@ -15,12 +15,6 @@ mod parser;
 #[cfg(test)]
 mod test;
 
-pub enum CommandResult {
-    Success,
-    Failed,
-    Quit,
-}
-
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Command {
@@ -68,11 +62,11 @@ pub enum Cmd {
 }
 
 pub trait Syncer {
-    fn sync(&self, interp: &Interpreter, lines: &[String]) -> CommandResult;
+    fn sync(&self, interp: &Interpreter, lines: &[String]) -> bool;
 }
 
 pub trait Sourcer {
-    fn source(&self, interp: &Interpreter) -> Result<Vec<String>, CommandResult>;
+    fn source(&self, interp: &Interpreter) -> Option<Vec<String>>;
 }
 
 impl Command {
@@ -93,8 +87,8 @@ impl Default for SubstFlags {
 }
 
 impl Syncer for SysPoint {
-    fn sync(&self, interp: &Interpreter, lines: &[String]) -> CommandResult {
-        fn sync_file(name: &str, lines: &[String]) -> CommandResult {
+    fn sync(&self, interp: &Interpreter, lines: &[String]) -> bool {
+        fn sync_file(name: &str, lines: &[String]) -> bool {
             if let Ok(mut file) = OpenOptions::new()
                 .truncate(true)
                 .write(true)
@@ -103,13 +97,13 @@ impl Syncer for SysPoint {
             {
                 for line in lines {
                     if let Err(_) = writeln!(file, "{}", line) {
-                        return CommandResult::Failed;
+                        return false;
                     }
                 }
 
-                CommandResult::Success
+                true
             } else {
-                CommandResult::Failed
+                false
             }
         }
 
@@ -118,7 +112,7 @@ impl Syncer for SysPoint {
                 if let Some(filename) = &interp.filename {
                     sync_file(filename, lines)
                 } else {
-                    CommandResult::Failed
+                    false
                 }
             }
 
@@ -129,8 +123,8 @@ impl Syncer for SysPoint {
 }
 
 impl Sourcer for SysPoint {
-    fn source(&self, interp: &Interpreter) -> Result<Vec<String>, CommandResult> {
-        fn src_file(filename: &str) -> Result<Vec<String>, CommandResult> {
+    fn source(&self, interp: &Interpreter) -> Option<Vec<String>> {
+        fn src_file(filename: &str) -> Option<Vec<String>> {
             if let Ok(file) = OpenOptions::new().read(true).open(filename) {
                 let mut reader = BufReader::new(file);
                 let mut buffer = String::new();
@@ -139,8 +133,8 @@ impl Sourcer for SysPoint {
                     let read = reader.read_line(&mut buffer);
 
                     match read {
-                        Ok(0) => break Ok(lines),
-                        Err(_) => break Err(CommandResult::Failed),
+                        Ok(0) => break Some(lines),
+                        Err(_) => break None,
                         _ => {
                             chomp(&mut buffer);
                             lines.push(buffer);
@@ -149,7 +143,7 @@ impl Sourcer for SysPoint {
                     }
                 }
             } else {
-                Err(CommandResult::Failed)
+                None
             }
         }
 
@@ -158,7 +152,7 @@ impl Sourcer for SysPoint {
                 if let Some(filename) = &interp.filename {
                     src_file(filename)
                 } else {
-                    Err(CommandResult::Failed)
+                    None
                 }
             }
 
@@ -169,13 +163,13 @@ impl Sourcer for SysPoint {
 }
 
 impl Syncer for Cmd {
-    fn sync(&self, interp: &Interpreter, lines: &[String]) -> CommandResult {
+    fn sync(&self, interp: &Interpreter, lines: &[String]) -> bool {
         let cmd = if let Some(cmd) =
             self.replace_filename(interp.filename.as_deref(), interp.last_wcmd.as_deref())
         {
             cmd
         } else {
-            return CommandResult::Failed;
+            return false;
         };
 
         let rchild = SysCmd::new("sh")
@@ -188,29 +182,29 @@ impl Syncer for Cmd {
             let mut stdin = child.stdin.take().unwrap();
             for line in lines {
                 if let Err(_) = writeln!(stdin, "{}", line) {
-                    return CommandResult::Failed;
+                    return false;
                 }
             }
 
             if matches!(child.wait(), Err(_)) {
-                return CommandResult::Failed;
-            };
+                return false;
+            }
 
-            CommandResult::Success
+            true
         } else {
-            CommandResult::Failed
+            false
         }
     }
 }
 
 impl Sourcer for Cmd {
-    fn source(&self, interp: &Interpreter) -> Result<Vec<String>, CommandResult> {
+    fn source(&self, interp: &Interpreter) -> Option<Vec<String>> {
         let cmd = if let Some(cmd) =
             self.replace_filename(interp.filename.as_deref(), interp.last_rcmd.as_deref())
         {
             cmd
         } else {
-            return Err(CommandResult::Failed);
+            return None;
         };
 
         let rchild = SysCmd::new("sh")
@@ -229,8 +223,8 @@ impl Sourcer for Cmd {
                 let read = reader.read_line(&mut buffer);
 
                 match read {
-                    Ok(0) => break Ok(dbg!(lines)),
-                    Err(_) => break Err(CommandResult::Failed),
+                    Ok(0) => break Some(lines),
+                    Err(_) => break None,
                     _ => {
                         chomp(&mut buffer);
                         lines.push(buffer);
@@ -240,12 +234,12 @@ impl Sourcer for Cmd {
             };
 
             if matches!(child.wait(), Err(_)) {
-                return Err(CommandResult::Failed);
+                None
             } else {
                 lines
             }
         } else {
-            Err(CommandResult::Failed)
+            None
         }
     }
 }
@@ -292,21 +286,21 @@ impl Cmd {
         Some(buf)
     }
 
-    fn run(&self, interp: &Interpreter) -> CommandResult {
+    fn run(&self, interp: &Interpreter) -> bool {
         let cmd = if let Some(cmd) =
             self.replace_filename(interp.filename.as_deref(), interp.last_cmd.as_deref())
         {
             cmd
         } else {
-            return CommandResult::Failed;
+            return false;
         };
 
         let status = SysCmd::new("sh").arg("-c").arg(cmd).status();
 
         if status.map_or(false, |s| s.success()) {
-            CommandResult::Success
+            true
         } else {
-            CommandResult::Failed
+            false
         }
     }
 }

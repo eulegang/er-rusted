@@ -1,5 +1,5 @@
 use crate::{
-    cmd::{Command, CommandResult, SubstFlags},
+    cmd::{Command, SubstFlags},
     re::{Pat, Re},
     Buffer,
 };
@@ -21,6 +21,11 @@ pub struct Interpreter {
     pub(crate) last_cmd: Option<String>,
     pub(crate) last_rcmd: Option<String>,
     pub(crate) last_wcmd: Option<String>,
+}
+
+pub enum Action {
+    Nop,
+    Quit,
 }
 
 impl Interpreter {
@@ -62,11 +67,11 @@ impl Interpreter {
         })
     }
 
-    pub fn exec(&mut self, cmd: Command) -> CommandResult {
+    pub fn exec(&mut self, cmd: Command) -> Result<Action, ()> {
         cmd.invoke(self)
     }
 
-    pub fn exec_with_text(&mut self, cmd: Command, text: Vec<String>) -> CommandResult {
+    pub fn exec_with_text(&mut self, cmd: Command, text: Vec<String>) -> Result<Action, ()> {
         cmd.invoke_with_text(self, text)
     }
 }
