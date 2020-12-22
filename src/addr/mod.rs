@@ -44,6 +44,12 @@ impl Default for Offset {
     }
 }
 
+impl Default for Address {
+    fn default() -> Address {
+        Address::Line(Default::default())
+    }
+}
+
 pub trait RangeResolver {
     fn resolve_range(&self, interp: &Interpreter) -> Option<(usize, usize)>;
 }

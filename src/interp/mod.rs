@@ -54,10 +54,6 @@ impl Interpreter {
     pub fn exec(&mut self, cmd: Command) -> Result<Action, ()> {
         cmd.invoke(self)
     }
-
-    pub fn exec_with_text(&mut self, cmd: Command, text: Vec<String>) -> Result<Action, ()> {
-        cmd.invoke_with_text(self, text)
-    }
 }
 
 impl Default for Env {

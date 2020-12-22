@@ -168,35 +168,27 @@ impl Command {
                 Ok(Action::Nop)
             }
 
-            Append(_) | Insert(_) | Change(_) => unreachable!(),
-        }
-    }
-
-    pub(crate) fn invoke_with_text(
-        &self,
-        interp: &mut Interpreter,
-        lines: Vec<String>,
-    ) -> Result<Action, ()> {
-        use Command::*;
-
-        match self {
-            Append(line_ref) => {
+            Append(line_ref, Some(lines)) => {
                 let line = line_ref.resolve_line(interp).ok_or(())?;
-                interp.buffer.append(line, lines);
+                interp.buffer.append(line, lines.clone());
                 Ok(Action::Nop)
             }
-            Insert(line_ref) => {
+
+            Insert(line_ref, Some(lines)) => {
                 let line = line_ref.resolve_line(interp).ok_or(())?;
-                interp.buffer.insert(line, lines);
+                interp.buffer.insert(line, lines.clone());
                 Ok(Action::Nop)
             }
-            Change(line_ref) => {
+
+            Change(line_ref, Some(lines)) => {
                 let (start, end) = line_ref.resolve_range(interp).ok_or(())?;
-                interp.buffer.change(start, end, lines);
+                interp.buffer.change(start, end, lines.clone());
                 Ok(Action::Nop)
             }
 
-            _ => unreachable!(),
+            Append(_, None) | Insert(_, None) | Change(_, None) => {
+                panic!("Content must be injected into a, c or i before invoking")
+            }
         }
     }
 }

@@ -83,12 +83,12 @@ impl Repl {
     fn process_line<T: Helper>(&mut self, line: &str, rl: &mut Editor<T>) -> LineHandling {
         use LineHandling::*;
 
-        let cmd = match Command::from_str(&line) {
+        let mut cmd = match Command::from_str(&line) {
             Ok(cmd) => cmd,
             Err(_) => return InvalidCommand,
         };
 
-        let result = if cmd.needs_text() {
+        if cmd.needs_text() {
             let lines = match self.read_text_mode(rl) {
                 Ok(lines) => lines,
                 Err(ReadlineError::Interrupted) => return Next,
@@ -99,12 +99,10 @@ impl Repl {
                 }
             };
 
-            self.interp.exec_with_text(cmd, lines)
-        } else {
-            self.interp.exec(cmd)
-        };
+            cmd.inject(lines);
+        }
 
-        match result {
+        match self.interp.exec(cmd) {
             Err(()) => InvalidInvocation,
             Ok(Action::Nop) => Next,
             Ok(Action::Quit) => Quit,

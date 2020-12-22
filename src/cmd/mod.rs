@@ -37,9 +37,9 @@ pub enum Command {
 
     Quit,
 
-    Append(Offset),
-    Insert(Offset),
-    Change(Address),
+    Append(Offset, Option<Vec<String>>),
+    Insert(Offset, Option<Vec<String>>),
+    Change(Address, Option<Vec<String>>),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -73,7 +73,19 @@ impl Command {
     pub fn needs_text(&self) -> bool {
         use Command::*;
 
-        matches!(self, Append(_) | Insert(_) | Change(_))
+        matches!(self, Append(_, None) | Insert(_, None) | Change(_, None))
+    }
+
+    pub fn inject(&mut self, lines: Vec<String>) {
+        use std::mem::take;
+
+        match self {
+            Command::Append(line, None) => *self = Command::Append(take(line), Some(lines)),
+            Command::Insert(line, None) => *self = Command::Insert(take(line), Some(lines)),
+            Command::Change(addr, None) => *self = Command::Change(take(addr), Some(lines)),
+
+            _ => panic!("can not inject text into non aci commands"),
+        };
     }
 }
 

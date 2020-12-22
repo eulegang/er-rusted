@@ -40,7 +40,10 @@ impl Parsable for Command {
 
             Some('c') => Ok((
                 input,
-                Command::Change(addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)))),
+                Command::Change(
+                    addr.unwrap_or(Address::Line(Offset::Nil(Point::Current))),
+                    None,
+                ),
             )),
 
             Some('j') => Ok((
@@ -120,8 +123,8 @@ impl Parsable for Command {
             }
 
             Some('i') => match addr {
-                Some(Address::Line(offset)) => Ok((input, Command::Insert(offset))),
-                None => Ok((input, Command::Insert(Offset::Nil(Point::Current)))),
+                Some(Address::Line(offset)) => Ok((input, Command::Insert(offset, None))),
+                None => Ok((input, Command::Insert(Offset::Nil(Point::Current), None))),
                 Some(_) => Err(nom::Err::Error(nom::error::Error::new(
                     input,
                     nom::error::ErrorKind::Fix,
@@ -129,8 +132,8 @@ impl Parsable for Command {
             },
 
             Some('a') => match addr {
-                Some(Address::Line(offset)) => Ok((input, Command::Append(offset))),
-                None => Ok((input, Command::Append(Offset::Nil(Point::Current)))),
+                Some(Address::Line(offset)) => Ok((input, Command::Append(offset, None))),
+                None => Ok((input, Command::Append(Offset::Nil(Point::Current), None))),
                 Some(_) => Err(nom::Err::Error(nom::error::Error::new(
                     input,
                     nom::error::ErrorKind::Fix,
