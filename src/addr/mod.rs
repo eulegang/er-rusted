@@ -1,5 +1,5 @@
 use crate::re::Re;
-use crate::Interpreter;
+use crate::{interp::Env, Buffer};
 
 mod parser;
 
@@ -51,51 +51,51 @@ impl Default for Address {
 }
 
 pub trait RangeResolver {
-    fn resolve_range(&self, interp: &Interpreter) -> Option<(usize, usize)>;
+    fn resolve_range(&self, buffer: &Buffer, env: &Env) -> Option<(usize, usize)>;
 }
 
 impl RangeResolver for Address {
-    fn resolve_range(&self, interp: &Interpreter) -> Option<(usize, usize)> {
+    fn resolve_range(&self, buffer: &Buffer, env: &Env) -> Option<(usize, usize)> {
         match self {
             Address::Line(offset) => {
-                let pos = offset.resolve_line(interp);
+                let pos = offset.resolve_line(buffer, env);
 
                 pos.zip(pos)
             }
 
-            Address::Range { start, end } => {
-                start.resolve_line(interp).zip(end.resolve_line(interp))
-            }
+            Address::Range { start, end } => start
+                .resolve_line(buffer, env)
+                .zip(end.resolve_line(buffer, env)),
         }
     }
 }
 
 pub trait LineResolver {
-    fn resolve_line(&self, interp: &Interpreter) -> Option<usize>;
+    fn resolve_line(&self, buffer: &Buffer, env: &Env) -> Option<usize>;
 }
 
 impl LineResolver for Offset {
-    fn resolve_line(&self, interp: &Interpreter) -> Option<usize> {
+    fn resolve_line(&self, buffer: &Buffer, env: &Env) -> Option<usize> {
         match self {
-            Offset::Nil(point) => point.resolve_line(interp),
-            Offset::Relf(point, offset) => point.resolve_line(interp).map(|i| i + offset),
-            Offset::Relb(point, offset) => point.resolve_line(interp).map(|i| i - offset),
+            Offset::Nil(point) => point.resolve_line(buffer, env),
+            Offset::Relf(point, offset) => point.resolve_line(buffer, env).map(|i| i + offset),
+            Offset::Relb(point, offset) => point.resolve_line(buffer, env).map(|i| i - offset),
         }
     }
 }
 
 impl LineResolver for Point {
-    fn resolve_line(&self, interp: &Interpreter) -> Option<usize> {
+    fn resolve_line(&self, buffer: &Buffer, env: &Env) -> Option<usize> {
         match self {
-            Point::Current => Some(interp.buffer.cur),
+            Point::Current => Some(buffer.cur),
             Point::Abs(s) => Some(s.clone()),
-            Point::Mark(ch) => interp.env.marks.get(ch).cloned(),
-            Point::Last => Some(interp.buffer.lines()),
+            Point::Mark(ch) => env.marks.get(ch).cloned(),
+            Point::Last => Some(buffer.lines()),
 
             Point::Ref(re) => {
-                let mut i = interp.buffer.cur + 1;
+                let mut i = buffer.cur + 1;
 
-                while let Some(line) = interp.buffer.line(i) {
+                while let Some(line) = buffer.line(i) {
                     if re.is_match(line) {
                         return Some(i);
                     }
@@ -107,9 +107,9 @@ impl LineResolver for Point {
             }
 
             Point::Reb(re) => {
-                let mut i = interp.buffer.cur - 1;
+                let mut i = buffer.cur - 1;
 
-                while let Some(line) = interp.buffer.line(i) {
+                while let Some(line) = buffer.line(i) {
                     if re.is_match(line) {
                         return Some(i);
                     }

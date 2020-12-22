@@ -1,8 +1,9 @@
 use crate::{
     addr::{Address, Offset},
     buffer::chomp,
-    interp::Interpreter,
+    interp::Env,
     re::{Pat, Re},
+    Buffer,
 };
 
 use std::fs::OpenOptions;
@@ -62,11 +63,11 @@ pub enum Cmd {
 }
 
 pub trait Syncer {
-    fn sync(&self, interp: &Interpreter, lines: &[String]) -> bool;
+    fn sync(&self, buffer: &mut Buffer, env: &Env, lines: &[String]) -> bool;
 }
 
 pub trait Sourcer {
-    fn source(&self, interp: &Interpreter) -> Option<Vec<String>>;
+    fn source(&self, buffer: &Buffer, env: &Env) -> Option<Vec<String>>;
 }
 
 impl Command {
@@ -99,7 +100,7 @@ impl Default for SubstFlags {
 }
 
 impl Syncer for SysPoint {
-    fn sync(&self, interp: &Interpreter, lines: &[String]) -> bool {
+    fn sync(&self, buffer: &mut Buffer, env: &Env, lines: &[String]) -> bool {
         fn sync_file(name: &str, lines: &[String]) -> bool {
             if let Ok(mut file) = OpenOptions::new()
                 .truncate(true)
@@ -121,7 +122,7 @@ impl Syncer for SysPoint {
 
         match self {
             SysPoint::Filename => {
-                if let Some(filename) = &interp.env.filename {
+                if let Some(filename) = &env.filename {
                     sync_file(filename, lines)
                 } else {
                     false
@@ -129,13 +130,13 @@ impl Syncer for SysPoint {
             }
 
             SysPoint::File(name) => sync_file(name, lines),
-            SysPoint::Command(command) => command.sync(interp, lines),
+            SysPoint::Command(command) => command.sync(buffer, env, lines),
         }
     }
 }
 
 impl Sourcer for SysPoint {
-    fn source(&self, interp: &Interpreter) -> Option<Vec<String>> {
+    fn source(&self, buffer: &Buffer, env: &Env) -> Option<Vec<String>> {
         fn src_file(filename: &str) -> Option<Vec<String>> {
             if let Ok(file) = OpenOptions::new().read(true).open(filename) {
                 let mut reader = BufReader::new(file);
@@ -161,7 +162,7 @@ impl Sourcer for SysPoint {
 
         match self {
             SysPoint::Filename => {
-                if let Some(filename) = &interp.env.filename {
+                if let Some(filename) = &env.filename {
                     src_file(filename)
                 } else {
                     None
@@ -169,17 +170,16 @@ impl Sourcer for SysPoint {
             }
 
             SysPoint::File(file) => src_file(file),
-            SysPoint::Command(command) => command.source(interp),
+            SysPoint::Command(command) => command.source(buffer, env),
         }
     }
 }
 
 impl Syncer for Cmd {
-    fn sync(&self, interp: &Interpreter, lines: &[String]) -> bool {
-        let cmd = if let Some(cmd) = self.replace_filename(
-            interp.env.filename.as_deref(),
-            interp.env.last_wcmd.as_deref(),
-        ) {
+    fn sync(&self, _: &mut Buffer, env: &Env, lines: &[String]) -> bool {
+        let cmd = if let Some(cmd) =
+            self.replace_filename(env.filename.as_deref(), env.last_wcmd.as_deref())
+        {
             cmd
         } else {
             return false;
@@ -211,11 +211,10 @@ impl Syncer for Cmd {
 }
 
 impl Sourcer for Cmd {
-    fn source(&self, interp: &Interpreter) -> Option<Vec<String>> {
-        let cmd = if let Some(cmd) = self.replace_filename(
-            interp.env.filename.as_deref(),
-            interp.env.last_rcmd.as_deref(),
-        ) {
+    fn source(&self, _: &Buffer, env: &Env) -> Option<Vec<String>> {
+        let cmd = if let Some(cmd) =
+            self.replace_filename(env.filename.as_deref(), env.last_rcmd.as_deref())
+        {
             cmd
         } else {
             return None;
@@ -300,11 +299,10 @@ impl Cmd {
         Some(buf)
     }
 
-    fn run(&self, interp: &Interpreter) -> bool {
-        let cmd = if let Some(cmd) = self.replace_filename(
-            interp.env.filename.as_deref(),
-            interp.env.last_cmd.as_deref(),
-        ) {
+    fn run(&self, env: &Env) -> bool {
+        let cmd = if let Some(cmd) =
+            self.replace_filename(env.filename.as_deref(), env.last_cmd.as_deref())
+        {
             cmd
         } else {
             return false;

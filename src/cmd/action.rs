@@ -1,42 +1,43 @@
 use super::*;
 use crate::addr::{LineResolver, RangeResolver};
-use crate::interp::{Action, Interpreter};
+use crate::interp::{Action, Env};
+use crate::Buffer;
 use regex::Captures;
 
 impl Command {
-    pub(crate) fn invoke(&self, interp: &mut Interpreter) -> Result<Action, ()> {
+    pub(crate) fn invoke(&self, buffer: &mut Buffer, env: &Env) -> Result<Vec<Action>, ()> {
         use Command::*;
 
         match self {
             Print(addr) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(buffer, env).ok_or(())?;
 
                 for line in start..=end {
-                    if let Some(l) = interp.buffer.line(line) {
+                    if let Some(l) = buffer.line(line) {
                         println!("{}", l)
                     }
                 }
 
-                Ok(Action::Nop)
+                Ok(vec![])
             }
 
             Delete(addr) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
-                interp.buffer.remove(start, end);
-                interp.buffer.cur = start;
-                Ok(Action::Nop)
+                let (start, end) = addr.resolve_range(buffer, env).ok_or(())?;
+                buffer.remove(start, end);
+                buffer.cur = start;
+                Ok(vec![])
             }
 
             Mark(offset, mark) => {
-                let line = offset.resolve_line(interp).ok_or(())?;
-                interp.env.marks.insert(*mark, line);
-                Ok(Action::Nop)
+                let line = offset.resolve_line(buffer, env).ok_or(())?;
+
+                Ok(vec![Action::Mark(*mark, line)])
             }
 
             Join(addr) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(buffer, env).ok_or(())?;
 
-                let lines: Vec<String> = interp.buffer.remove(start, end).ok_or(())?.collect();
+                let lines: Vec<String> = buffer.remove(start, end).ok_or(())?.collect();
                 let mut it = lines.into_iter();
 
                 if let Some(mut insert) = it.next() {
@@ -45,145 +46,137 @@ impl Command {
                         insert.push_str(line.trim_start());
                     }
 
-                    interp.buffer.insert(start, vec![insert]);
+                    buffer.insert(start, vec![insert]);
                 }
 
-                Ok(Action::Nop)
+                Ok(vec![])
             }
 
             Move(addr, offset) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
-                let to = offset.resolve_line(interp).ok_or(())?;
-                let lines = interp.buffer.remove(start, end).ok_or(())?.collect();
-                interp.buffer.insert(to, lines);
-                Ok(Action::Nop)
+                let (start, end) = addr.resolve_range(buffer, env).ok_or(())?;
+                let to = offset.resolve_line(buffer, env).ok_or(())?;
+                let lines = buffer.remove(start, end).ok_or(())?.collect();
+                buffer.insert(to, lines);
+                Ok(vec![])
             }
 
             Transfer(addr, offset) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
-                let to = offset.resolve_line(interp).ok_or(())?;
-                let lines = interp.buffer.range(start, end).ok_or(())?;
-                interp.buffer.insert(to, lines);
-                Ok(Action::Nop)
+                let (start, end) = addr.resolve_range(buffer, env).ok_or(())?;
+                let to = offset.resolve_line(buffer, env).ok_or(())?;
+                let lines = buffer.range(start, end).ok_or(())?;
+                buffer.insert(to, lines);
+                Ok(vec![])
             }
 
             Yank(addr) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
-                interp.env.cut = interp.buffer.range(start, end).ok_or(())?;
-                Ok(Action::Nop)
+                let (start, end) = addr.resolve_range(buffer, env).ok_or(())?;
+                let lines = buffer.range(start, end).ok_or(())?;
+
+                Ok(vec![Action::SetCut(lines)])
             }
 
             Paste(offset) => {
-                let line = offset.resolve_line(interp).ok_or(())?;
-                interp.buffer.insert(line, interp.env.cut.clone());
-                Ok(Action::Nop)
+                let line = offset.resolve_line(buffer, env).ok_or(())?;
+                buffer.insert(line, env.cut.clone());
+                Ok(vec![])
             }
 
             Write(addr, syncer, quit) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
-                let lines = interp.buffer.range(start, end).ok_or(())?;
-                syncer.sync(interp, &lines);
-                let res = if *quit {
-                    Ok(Action::Quit)
-                } else {
-                    Ok(Action::Nop)
-                };
+                let (start, end) = addr.resolve_range(buffer, env).ok_or(())?;
+                let lines = buffer.range(start, end).ok_or(())?.to_vec();
+                syncer.sync(buffer, env, &lines);
+                let mut actions = Vec::with_capacity(2);
 
                 if let SysPoint::Command(Cmd::System(cmd)) = syncer {
-                    interp.env.last_wcmd = Some(cmd.to_string())
+                    actions.push(Action::SetWCmd(cmd.to_string()))
                 }
 
-                res
+                if *quit {
+                    actions.push(Action::Quit);
+                }
+
+                Ok(actions)
             }
 
             Read(offset, src) => {
-                let line = offset.resolve_line(interp).ok_or(())?;
-                let res = interp.buffer.append(line, src.source(interp).ok_or(())?);
-
-                if let SysPoint::Command(Cmd::System(cmd)) = src {
-                    interp.env.last_rcmd = Some(cmd.to_string())
+                let line = offset.resolve_line(buffer, env).ok_or(())?;
+                if !buffer.append(line, src.source(buffer, env).ok_or(())?) {
+                    return Err(());
                 }
 
-                if res {
-                    Ok(Action::Nop)
+                if let SysPoint::Command(Cmd::System(cmd)) = src {
+                    Ok(vec![Action::SetRCmd(cmd.to_string())])
                 } else {
-                    Err(())
+                    Ok(vec![])
                 }
             }
 
             Run(cmd) => {
-                let res = cmd.run(interp);
-
-                if let Cmd::System(cmd) = cmd {
-                    interp.env.last_cmd = Some(cmd.to_string())
+                if !cmd.run(env) {
+                    return Err(());
                 }
 
-                if res {
-                    Ok(Action::Nop)
+                if let Cmd::System(cmd) = cmd {
+                    Ok(vec![Action::SetCmd(cmd.to_string())])
                 } else {
-                    Err(())
+                    Ok(vec![])
                 }
             }
 
             Subst(addr, re, pat, flags) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(buffer, env).ok_or(())?;
 
                 let flags = flags.unwrap_or_else(|| {
                     if re.is_none() && pat.is_none() {
-                        interp.env.last_flags.unwrap_or_default()
+                        env.last_flags.unwrap_or_default()
                     } else {
                         Default::default()
                     }
                 });
 
-                let re = match (re, &interp.env.last_re) {
+                let re = match (re, &env.last_re) {
                     (Some(re), _) | (None, Some(re)) => re.clone(),
                     (None, None) => return Err(()),
                 };
 
-                let pat = match (pat, &interp.env.last_pat) {
+                let pat = match (pat, &env.last_pat) {
                     (Some(Pat::Replay), None) | (None, None) => return Err(()),
                     (Some(Pat::Replay), Some(pat)) | (Some(pat), _) | (None, Some(pat)) => {
                         pat.clone()
                     }
                 };
 
-                let result = run_subst(interp, start, end, &re, &pat, &flags);
-
-                interp.env.last_re = Some(re);
-                interp.env.last_pat = Some(pat);
-
-                if result {
-                    Ok(Action::Nop)
-                } else {
-                    Err(())
+                if !run_subst(buffer, start, end, &re, &pat, &flags) {
+                    return Err(());
                 }
+
+                Ok(vec![Action::SetRe(re), Action::SetPat(pat)])
             }
 
-            Quit => Ok(Action::Quit),
+            Quit => Ok(vec![Action::Quit]),
 
             Nop(offset) => {
-                let line = offset.resolve_line(interp).ok_or(())?;
-                interp.buffer.cur = line;
-                Ok(Action::Nop)
+                let line = offset.resolve_line(buffer, env).ok_or(())?;
+                buffer.cur = line;
+                Ok(vec![])
             }
 
             Append(line_ref, Some(lines)) => {
-                let line = line_ref.resolve_line(interp).ok_or(())?;
-                interp.buffer.append(line, lines.clone());
-                Ok(Action::Nop)
+                let line = line_ref.resolve_line(buffer, env).ok_or(())?;
+                buffer.append(line, lines.clone());
+                Ok(vec![])
             }
 
             Insert(line_ref, Some(lines)) => {
-                let line = line_ref.resolve_line(interp).ok_or(())?;
-                interp.buffer.insert(line, lines.clone());
-                Ok(Action::Nop)
+                let line = line_ref.resolve_line(buffer, env).ok_or(())?;
+                buffer.insert(line, lines.clone());
+                Ok(vec![])
             }
 
             Change(line_ref, Some(lines)) => {
-                let (start, end) = line_ref.resolve_range(interp).ok_or(())?;
-                interp.buffer.change(start, end, lines.clone());
-                Ok(Action::Nop)
+                let (start, end) = line_ref.resolve_range(buffer, env).ok_or(())?;
+                buffer.change(start, end, lines.clone());
+                Ok(vec![])
             }
 
             Append(_, None) | Insert(_, None) | Change(_, None) => {
@@ -194,7 +187,7 @@ impl Command {
 }
 
 fn run_subst(
-    interp: &mut Interpreter,
+    buffer: &mut Buffer,
     start: usize,
     end: usize,
     re: &Re,
@@ -208,7 +201,7 @@ fn run_subst(
     }
 
     for i in start..=end {
-        let line = if let Some(line) = interp.buffer.line(i) {
+        let line = if let Some(line) = buffer.line(i) {
             line.clone()
         } else {
             continue;
@@ -225,7 +218,7 @@ fn run_subst(
             println!("{}", replaced);
         }
 
-        interp.buffer.replace_line(i, replaced);
+        buffer.replace_line(i, replaced);
     }
 
     replaced

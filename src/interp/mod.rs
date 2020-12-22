@@ -28,8 +28,21 @@ pub struct Env {
 }
 
 pub enum Action {
-    Nop,
+    SetCut(Vec<String>),
+    Mark(char, usize),
+    SetRe(Re),
+    SetPat(Pat),
+    SetFlags(SubstFlags),
+    SetCmd(String),
+    SetRCmd(String),
+    SetWCmd(String),
     Quit,
+}
+
+impl Action {
+    pub fn is_quit(&self) -> bool {
+        matches!(self, Action::Quit)
+    }
 }
 
 impl Interpreter {
@@ -51,8 +64,25 @@ impl Interpreter {
         Ok(Interpreter { buffer, env })
     }
 
-    pub fn exec(&mut self, cmd: Command) -> Result<Action, ()> {
-        cmd.invoke(self)
+    pub fn exec(&mut self, cmd: Command) -> Result<Vec<Action>, ()> {
+        cmd.invoke(&mut self.buffer, &self.env)
+    }
+
+    pub fn perform(&mut self, action: Action) {
+        match action {
+            Action::SetCut(lines) => self.env.cut = lines,
+            Action::Mark(ch, pos) => {
+                self.env.marks.insert(ch, pos);
+            }
+
+            Action::SetRe(re) => self.env.last_re = Some(re),
+            Action::SetPat(pat) => self.env.last_pat = Some(pat),
+            Action::SetFlags(flag) => self.env.last_flags = Some(flag),
+            Action::SetCmd(cmd) => self.env.last_cmd = Some(cmd),
+            Action::SetRCmd(cmd) => self.env.last_cmd = Some(cmd),
+            Action::SetWCmd(cmd) => self.env.last_cmd = Some(cmd),
+            Action::Quit => (),
+        }
     }
 }
 

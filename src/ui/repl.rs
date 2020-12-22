@@ -1,9 +1,6 @@
 use super::*;
 
-use crate::{
-    cmd::Command,
-    interp::{Action, Interpreter},
-};
+use crate::{cmd::Command, interp::Interpreter};
 use eyre::WrapErr;
 use rustyline::{error::ReadlineError, Config, EditMode, Editor, Helper};
 use std::str::FromStr;
@@ -104,8 +101,17 @@ impl Repl {
 
         match self.interp.exec(cmd) {
             Err(()) => InvalidInvocation,
-            Ok(Action::Nop) => Next,
-            Ok(Action::Quit) => Quit,
+            Ok(actions) => {
+                for action in actions {
+                    if action.is_quit() {
+                        return Quit;
+                    }
+
+                    self.interp.perform(action);
+                }
+
+                return Next;
+            }
         }
     }
 
