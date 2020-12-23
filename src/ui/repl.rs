@@ -101,17 +101,8 @@ impl Repl {
 
         match self.interp.exec(cmd) {
             Err(()) => InvalidInvocation,
-            Ok(actions) => {
-                for action in actions {
-                    if action.is_quit() {
-                        return Quit;
-                    }
-
-                    self.interp.perform(action);
-                }
-
-                return Next;
-            }
+            Ok(true) => Next,
+            Ok(false) => Quit,
         }
     }
 

@@ -29,26 +29,6 @@ pub struct Env {
     pub(crate) last_wcmd: Option<String>,
 }
 
-pub enum Action {
-    SetCut(Vec<String>),
-    Mark(char, usize),
-    SetRe(Re),
-    SetPat(Pat),
-    SetFlags(SubstFlags),
-    SetCmd(String),
-    SetRCmd(String),
-    SetWCmd(String),
-    Next,
-    Prev,
-    Quit,
-}
-
-impl Action {
-    pub fn is_quit(&self) -> bool {
-        matches!(self, Action::Quit)
-    }
-}
-
 impl Interpreter {
     pub fn new(files: Vec<String>) -> io::Result<Interpreter> {
         let (filename, buffer) = if let Some(file) = files.get(0) {
@@ -76,54 +56,8 @@ impl Interpreter {
         })
     }
 
-    pub fn exec(&mut self, cmd: Command) -> Result<Vec<Action>, ()> {
-        cmd.invoke(&mut self.buffer, &self.env)
-    }
-
-    pub fn perform(&mut self, action: Action) {
-        match action {
-            Action::SetCut(lines) => self.env.cut = lines,
-            Action::Mark(ch, pos) => {
-                self.env.marks.insert(ch, pos);
-            }
-
-            Action::SetRe(re) => self.env.last_re = Some(re),
-            Action::SetPat(pat) => self.env.last_pat = Some(pat),
-            Action::SetFlags(flag) => self.env.last_flags = Some(flag),
-            Action::SetCmd(cmd) => self.env.last_cmd = Some(cmd),
-            Action::SetRCmd(cmd) => self.env.last_cmd = Some(cmd),
-            Action::SetWCmd(cmd) => self.env.last_cmd = Some(cmd),
-
-            Action::Next => {
-                if let Some(filename) = self.filelist.get(self.filepos + 1) {
-                    let buffer = match File::open(filename) {
-                        Ok(f) => Buffer::read(f).unwrap(),
-                        Err(e) if e.kind() == ErrorKind::NotFound => Buffer::default(),
-                        Err(_) => todo!(""),
-                    };
-                    self.env.filename = Some(filename.to_string());
-                    self.buffer = buffer;
-                    self.filepos = self.filepos + 1;
-                }
-            }
-
-            Action::Prev => {
-                if let Some(pos) = self.filepos.checked_sub(1) {
-                    if let Some(filename) = self.filelist.get(pos) {
-                        let buffer = match File::open(filename) {
-                            Ok(f) => Buffer::read(f).unwrap(),
-                            Err(e) if e.kind() == ErrorKind::NotFound => Buffer::default(),
-                            Err(_) => todo!(""),
-                        };
-                        self.env.filename = Some(filename.to_string());
-                        self.buffer = buffer;
-                        self.filepos = pos;
-                    }
-                }
-            }
-
-            Action::Quit => (),
-        }
+    pub fn exec(&mut self, cmd: Command) -> Result<bool, ()> {
+        cmd.invoke(self)
     }
 }
 
