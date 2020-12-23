@@ -12,6 +12,8 @@ use nom::{
     bytes::complete::{escaped, is_not, tag},
     character::complete::{digit1, multispace0, one_of},
     combinator::{all_consuming, cond, opt},
+    multi::separated_list1,
+    sequence::delimited,
     IResult,
 };
 
@@ -33,7 +35,7 @@ impl Parsable for Command {
             }
         }
 
-        let (input, op) = opt(one_of("pdacikjqmtyxswr"))(input)?;
+        let (input, op) = opt(one_of("pdacikjqmtyxswrgv"))(input)?;
 
         match op {
             Some('p') => Ok((
@@ -226,6 +228,69 @@ impl Parsable for Command {
                 Ok((input, Command::Subst(addr, re, pat, flags)))
             }
 
+            Some('g') => {
+                let (input, _) = tag("/")(input)?;
+
+                let (input, re_str) = opt(escaped(
+                    is_not("/"),
+                    '\\',
+                    one_of("\\.+*?()|[]{}^$?\"/dDwWsS"),
+                ))(input)?;
+
+                let (input, _) = tag("/")(input)?;
+
+                let re = re_str
+                    .map(Re::from_str)
+                    .transpose()
+                    .or(Err(nom::Err::Error(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Fix,
+                    ))))?;
+
+                let (input, cmd_list) = separated_list1(
+                    delimited(multispace0, tag("\\\n"), multispace0),
+                    Command::parse,
+                )(input)?;
+
+                let addr = addr.unwrap_or(Address::Range {
+                    start: Offset::Nil(Point::Abs(1)),
+                    end: Offset::Nil(Point::Last),
+                });
+
+                Ok((input, Command::Global(addr, re, cmd_list)))
+            }
+
+            Some('v') => {
+                let (input, _) = tag("/")(input)?;
+
+                let (input, re_str) = opt(escaped(
+                    is_not("/"),
+                    '\\',
+                    one_of("\\.+*?()|[]{}^$?\"/dDwWsS"),
+                ))(input)?;
+
+                let (input, _) = tag("/")(input)?;
+
+                let re = re_str
+                    .map(Re::from_str)
+                    .transpose()
+                    .or(Err(nom::Err::Error(nom::error::Error::new(
+                        input,
+                        nom::error::ErrorKind::Fix,
+                    ))))?;
+
+                let (input, cmd_list) = separated_list1(
+                    delimited(multispace0, tag("\\\n"), multispace0),
+                    Command::parse,
+                )(input)?;
+
+                let addr = addr.unwrap_or(Address::Range {
+                    start: Offset::Nil(Point::Abs(1)),
+                    end: Offset::Nil(Point::Last),
+                });
+
+                Ok((input, Command::Void(addr, re, cmd_list)))
+            }
             _ => unreachable!(),
         }
     }

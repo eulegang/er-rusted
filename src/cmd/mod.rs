@@ -36,6 +36,9 @@ pub enum Command {
     Read(Offset, SysPoint),
     Run(Cmd),
 
+    Global(Address, Option<Re>, Vec<Command>),
+    Void(Address, Option<Re>, Vec<Command>),
+
     NextBuffer,
     PrevBuffer,
 

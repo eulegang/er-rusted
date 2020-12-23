@@ -6,7 +6,7 @@ use crate::{
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{self, ErrorKind};
+use std::io::{self, ErrorKind, Read};
 
 pub struct Interpreter {
     pub(crate) filelist: Vec<String>,
@@ -56,8 +56,25 @@ impl Interpreter {
         })
     }
 
+    pub(crate) fn from_reader<R: Read>(r: R) -> io::Result<Interpreter> {
+        let buffer = Buffer::read(r)?;
+        let env = Env::default();
+
+        let filelist = vec![];
+        let filepos = 0;
+
+        Ok(Interpreter {
+            filelist,
+            filepos,
+            buffer,
+            env,
+        })
+    }
+
     pub fn exec(&mut self, cmd: Command) -> Result<bool, ()> {
-        cmd.invoke(self)
+        let (res, _) = cmd.invoke(self)?;
+
+        Ok(res)
     }
 }
 

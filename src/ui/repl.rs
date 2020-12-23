@@ -65,16 +65,32 @@ enum LineHandling {
 impl Repl {
     fn read_line<T: Helper>(&self, rl: &mut Editor<T>) -> Result<String, LineHandling> {
         use LineHandling::*;
-
-        match rl.readline(":") {
-            Ok(line) => Ok(line),
-            Err(ReadlineError::Interrupted) => Err(Next),
-            Err(ReadlineError::Eof) => Err(Quit),
+        let mut line = match rl.readline(":") {
+            Ok(line) => line,
+            Err(ReadlineError::Interrupted) => return Err(Next),
+            Err(ReadlineError::Eof) => return Err(Quit),
             Err(err) => {
                 eprintln!("err: {:?}", err);
-                Err(InvalidInvocation)
+                return Err(InvalidInvocation);
             }
+        };
+
+        while line.ends_with('\\') {
+            let partial = match rl.readline("   ") {
+                Ok(line) => line,
+                Err(ReadlineError::Interrupted) => return Err(Next),
+                Err(ReadlineError::Eof) => return Err(Quit),
+                Err(err) => {
+                    eprintln!("err: {:?}", err);
+                    return Err(InvalidInvocation);
+                }
+            };
+
+            line.push('\n');
+            line.push_str(&partial);
         }
+
+        return Ok(line);
     }
 
     fn process_line<T: Helper>(&mut self, line: &str, rl: &mut Editor<T>) -> LineHandling {
