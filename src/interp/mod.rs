@@ -9,6 +9,8 @@ use std::fs::File;
 use std::io::{self, ErrorKind};
 
 pub struct Interpreter {
+    pub(crate) filelist: Vec<String>,
+    pub(crate) filepos: usize,
     pub(crate) buffer: Buffer,
     pub(crate) env: Env,
 }
@@ -36,6 +38,8 @@ pub enum Action {
     SetCmd(String),
     SetRCmd(String),
     SetWCmd(String),
+    Next,
+    Prev,
     Quit,
 }
 
@@ -61,7 +65,15 @@ impl Interpreter {
         let mut env = Env::default();
         env.filename = filename;
 
-        Ok(Interpreter { buffer, env })
+        let filelist = files;
+        let filepos = 0;
+
+        Ok(Interpreter {
+            filelist,
+            filepos,
+            buffer,
+            env,
+        })
     }
 
     pub fn exec(&mut self, cmd: Command) -> Result<Vec<Action>, ()> {
@@ -81,6 +93,35 @@ impl Interpreter {
             Action::SetCmd(cmd) => self.env.last_cmd = Some(cmd),
             Action::SetRCmd(cmd) => self.env.last_cmd = Some(cmd),
             Action::SetWCmd(cmd) => self.env.last_cmd = Some(cmd),
+
+            Action::Next => {
+                if let Some(filename) = self.filelist.get(self.filepos + 1) {
+                    let buffer = match File::open(filename) {
+                        Ok(f) => Buffer::read(f).unwrap(),
+                        Err(e) if e.kind() == ErrorKind::NotFound => Buffer::default(),
+                        Err(_) => todo!(""),
+                    };
+                    self.env.filename = Some(filename.to_string());
+                    self.buffer = buffer;
+                    self.filepos = self.filepos + 1;
+                }
+            }
+
+            Action::Prev => {
+                if let Some(pos) = self.filepos.checked_sub(1) {
+                    if let Some(filename) = self.filelist.get(pos) {
+                        let buffer = match File::open(filename) {
+                            Ok(f) => Buffer::read(f).unwrap(),
+                            Err(e) if e.kind() == ErrorKind::NotFound => Buffer::default(),
+                            Err(_) => todo!(""),
+                        };
+                        self.env.filename = Some(filename.to_string());
+                        self.buffer = buffer;
+                        self.filepos = pos;
+                    }
+                }
+            }
+
             Action::Quit => (),
         }
     }

@@ -36,6 +36,9 @@ pub enum Command {
     Read(Offset, SysPoint),
     Run(Cmd),
 
+    NextBuffer,
+    PrevBuffer,
+
     Quit,
 
     Append(Offset, Option<Vec<String>>),

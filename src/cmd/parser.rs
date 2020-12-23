@@ -23,6 +23,14 @@ impl Parsable for Command {
             if let (input, Some(cmd)) = opt(Cmd::parse)(input)? {
                 return Ok((input, Command::Run(cmd)));
             }
+
+            if let (input, Some(ch)) = opt(one_of("<>"))(input)? {
+                return match ch {
+                    '>' => Ok((input, Command::NextBuffer)),
+                    '<' => Ok((input, Command::PrevBuffer)),
+                    _ => unreachable!(),
+                };
+            }
         }
 
         let (input, op) = opt(one_of("pdacikjqmtyxswr"))(input)?;

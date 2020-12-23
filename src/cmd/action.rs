@@ -179,6 +179,9 @@ impl Command {
                 Ok(vec![])
             }
 
+            NextBuffer => Ok(vec![Action::Next]),
+            PrevBuffer => Ok(vec![Action::Prev]),
+
             Append(_, None) | Insert(_, None) | Change(_, None) => {
                 panic!("Content must be injected into a, c or i before invoking")
             }
