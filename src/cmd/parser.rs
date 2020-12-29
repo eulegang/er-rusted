@@ -13,9 +13,15 @@ use nom::{
     character::complete::{digit1, multispace0, one_of},
     combinator::{all_consuming, cond, opt},
     multi::separated_list1,
-    sequence::delimited,
+    sequence::{delimited, preceded},
     IResult,
 };
+
+macro_rules! nom_bail {
+    ($input: expr) => {
+        nom::Err::Error(nom::error::Error::new($input, nom::error::ErrorKind::Fix))
+    };
+}
 
 impl Parsable for Command {
     fn parse(input: &str) -> IResult<&str, Command> {
@@ -38,28 +44,14 @@ impl Parsable for Command {
         let (input, op) = opt(one_of("pdacikjqmtyxswrgv"))(input)?;
 
         match op {
-            Some('p') => Ok((
-                input,
-                Command::Print(addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)))),
-            )),
+            Some('p') => Ok((input, Command::Print(addr.unwrap_or(Address::CURRENT)))),
 
-            Some('d') => Ok((
-                input,
-                Command::Delete(addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)))),
-            )),
-
-            Some('c') => Ok((
-                input,
-                Command::Change(
-                    addr.unwrap_or(Address::Line(Offset::Nil(Point::Current))),
-                    None,
-                ),
-            )),
+            Some('d') => Ok((input, Command::Delete(addr.unwrap_or(Address::CURRENT)))),
 
             Some('j') => Ok((
                 input,
                 Command::Join(addr.unwrap_or(Address::Range {
-                    start: Offset::Nil(Point::Current),
+                    start: Offset::CURRENT,
                     end: Offset::Relf(Point::Current, 1),
                 })),
             )),
@@ -69,10 +61,7 @@ impl Parsable for Command {
                 let (input, _) = multispace0(input)?;
                 let (input, sink) = SysPoint::parse(input)?;
 
-                let addr = addr.unwrap_or(Address::Range {
-                    start: Offset::Nil(Point::Abs(1)),
-                    end: Offset::Nil(Point::Last),
-                });
+                let addr = addr.unwrap_or(Address::FULL);
 
                 Ok((input, Command::Write(addr, sink, q.is_some())))
             }
@@ -81,33 +70,26 @@ impl Parsable for Command {
                 let (input, _) = multispace0(input)?;
                 let (input, src) = SysPoint::parse(input)?;
 
-                match addr {
-                    Some(Address::Line(offset)) => Ok((input, Command::Read(offset, src))),
-                    None => Ok((input, Command::Read(Offset::Nil(Point::Last), src))),
-                    Some(_) => Err(nom::Err::Error(nom::error::Error::new(
-                        input,
-                        nom::error::ErrorKind::Fix,
-                    ))),
-                }
+                let offset = addr
+                    .unwrap_or(Address::Line(Offset::Nil(Point::Last)))
+                    .to_line()
+                    .ok_or(nom_bail!(input))?;
+
+                Ok((input, Command::Read(offset, src)))
             }
 
             Some('q') => Ok((input, Command::Quit)),
 
-            Some('y') => Ok((
-                input,
-                Command::Yank(addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)))),
-            )),
+            Some('y') => Ok((input, Command::Yank(addr.unwrap_or(Address::CURRENT)))),
 
             Some('k') => {
                 let (input, mark) = one_of(VALID_MARKS)(input)?;
-                match addr {
-                    Some(Address::Line(offset)) => Ok((input, Command::Mark(offset, mark))),
-                    None => Ok((input, Command::Mark(Offset::Nil(Point::Current), mark))),
-                    Some(_) => Err(nom::Err::Error(nom::error::Error::new(
-                        input,
-                        nom::error::ErrorKind::Fix,
-                    ))),
-                }
+                let offset = addr
+                    .unwrap_or(Address::CURRENT)
+                    .to_line()
+                    .ok_or(nom_bail!(input))?;
+
+                Ok((input, Command::Mark(offset, mark)))
             }
 
             Some('m') => {
@@ -115,8 +97,8 @@ impl Parsable for Command {
                 Ok((
                     input,
                     Command::Move(
-                        addr.unwrap_or(Address::Line(Offset::Nil(Point::Current))),
-                        offset.unwrap_or(Offset::Nil(Point::Current)),
+                        addr.unwrap_or(Address::CURRENT),
+                        offset.unwrap_or(Offset::CURRENT),
                     ),
                 ))
             }
@@ -126,50 +108,61 @@ impl Parsable for Command {
                 Ok((
                     input,
                     Command::Transfer(
-                        addr.unwrap_or(Address::Line(Offset::Nil(Point::Current))),
-                        offset.unwrap_or(Offset::Nil(Point::Current)),
+                        addr.unwrap_or(Address::CURRENT),
+                        offset.unwrap_or(Offset::CURRENT),
                     ),
                 ))
             }
 
-            Some('i') => match addr {
-                Some(Address::Line(offset)) => Ok((input, Command::Insert(offset, None))),
-                None => Ok((input, Command::Insert(Offset::Nil(Point::Current), None))),
-                Some(_) => Err(nom::Err::Error(nom::error::Error::new(
-                    input,
-                    nom::error::ErrorKind::Fix,
-                ))),
-            },
+            Some('c') => {
+                let addr = addr.unwrap_or(Address::CURRENT);
+                let (input, text) = opt(preceded(multispace0, parse_str_lit))(input)?;
 
-            Some('a') => match addr {
-                Some(Address::Line(offset)) => Ok((input, Command::Append(offset, None))),
-                None => Ok((input, Command::Append(Offset::Nil(Point::Current), None))),
-                Some(_) => Err(nom::Err::Error(nom::error::Error::new(
-                    input,
-                    nom::error::ErrorKind::Fix,
-                ))),
-            },
+                Ok((input, Command::Change(addr, text)))
+            }
 
-            Some('x') => match addr {
-                Some(Address::Line(offset)) => Ok((input, Command::Paste(offset))),
-                None => Ok((input, Command::Paste(Offset::Nil(Point::Current)))),
-                Some(_) => Err(nom::Err::Error(nom::error::Error::new(
-                    input,
-                    nom::error::ErrorKind::Fix,
-                ))),
-            },
+            Some('i') => {
+                let offset = addr
+                    .unwrap_or(Address::CURRENT)
+                    .to_line()
+                    .ok_or(nom_bail!(input))?;
 
-            None => match addr {
-                Some(Address::Line(offset)) => Ok((input, Command::Nop(offset))),
-                None => Ok((input, Command::Nop(Offset::Nil(Point::Current)))),
-                Some(_) => Err(nom::Err::Error(nom::error::Error::new(
-                    input,
-                    nom::error::ErrorKind::Fix,
-                ))),
-            },
+                let (input, text) = opt(preceded(multispace0, parse_str_lit))(input)?;
+
+                Ok((input, Command::Insert(offset, text)))
+            }
+
+            Some('a') => {
+                let offset = addr
+                    .unwrap_or(Address::CURRENT)
+                    .to_line()
+                    .ok_or(nom_bail!(input))?;
+
+                let (input, text) = opt(preceded(multispace0, parse_str_lit))(input)?;
+
+                Ok((input, Command::Append(offset, text)))
+            }
+
+            Some('x') => {
+                let offset = addr
+                    .unwrap_or(Address::CURRENT)
+                    .to_line()
+                    .ok_or(nom_bail!(input))?;
+
+                Ok((input, Command::Paste(offset)))
+            }
+
+            None => {
+                let offset = addr
+                    .unwrap_or(Address::CURRENT)
+                    .to_line()
+                    .ok_or(nom_bail!(input))?;
+
+                Ok((input, Command::Nop(offset)))
+            }
 
             Some('s') if input.is_empty() => {
-                let addr = addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)));
+                let addr = addr.unwrap_or(Address::CURRENT);
                 Ok((input, Command::Subst(addr, None, None, None)))
             }
 
@@ -184,10 +177,7 @@ impl Parsable for Command {
                 let re = re_str
                     .map(Re::from_str)
                     .transpose()
-                    .or(Err(nom::Err::Error(nom::error::Error::new(
-                        input,
-                        nom::error::ErrorKind::Fix,
-                    ))))?;
+                    .or(Err(nom_bail!(input)))?;
 
                 let (input, prepat) = opt(one_of(&*sep.to_string()))(input)?;
 
@@ -198,9 +188,7 @@ impl Parsable for Command {
                 ))(input)?;
 
                 let pat = if prepat.is_some() {
-                    Some(Pat::from_str(pat_str.unwrap_or("")).or(Err(nom::Err::Error(
-                        nom::error::Error::new(input, nom::error::ErrorKind::Fix),
-                    )))?)
+                    Some(Pat::from_str(pat_str.unwrap_or("")).or(Err(nom_bail!(input)))?)
                 } else {
                     None
                 };
@@ -224,7 +212,7 @@ impl Parsable for Command {
                     SubstFlags { print, occurances }
                 });
 
-                let addr = addr.unwrap_or(Address::Line(Offset::Nil(Point::Current)));
+                let addr = addr.unwrap_or(Address::CURRENT);
                 Ok((input, Command::Subst(addr, re, pat, flags)))
             }
 
@@ -242,20 +230,14 @@ impl Parsable for Command {
                 let re = re_str
                     .map(Re::from_str)
                     .transpose()
-                    .or(Err(nom::Err::Error(nom::error::Error::new(
-                        input,
-                        nom::error::ErrorKind::Fix,
-                    ))))?;
+                    .or(Err(nom_bail!(input)))?;
 
                 let (input, cmd_list) = separated_list1(
                     delimited(multispace0, tag("\\\n"), multispace0),
                     Command::parse,
                 )(input)?;
 
-                let addr = addr.unwrap_or(Address::Range {
-                    start: Offset::Nil(Point::Abs(1)),
-                    end: Offset::Nil(Point::Last),
-                });
+                let addr = addr.unwrap_or(Address::FULL);
 
                 Ok((input, Command::Global(addr, re, cmd_list)))
             }
@@ -274,20 +256,14 @@ impl Parsable for Command {
                 let re = re_str
                     .map(Re::from_str)
                     .transpose()
-                    .or(Err(nom::Err::Error(nom::error::Error::new(
-                        input,
-                        nom::error::ErrorKind::Fix,
-                    ))))?;
+                    .or(Err(nom_bail!(input)))?;
 
                 let (input, cmd_list) = separated_list1(
                     delimited(multispace0, tag("\\\n"), multispace0),
                     Command::parse,
                 )(input)?;
 
-                let addr = addr.unwrap_or(Address::Range {
-                    start: Offset::Nil(Point::Abs(1)),
-                    end: Offset::Nil(Point::Last),
-                });
+                let addr = addr.unwrap_or(Address::FULL);
 
                 Ok((input, Command::Void(addr, re, cmd_list)))
             }
@@ -330,4 +306,19 @@ impl Parsable for Cmd {
             _ => unreachable!(),
         }
     }
+}
+
+fn parse_str_lit(input: &str) -> IResult<&str, Vec<String>> {
+    let (input, end) = one_of("\"'")(input)?;
+    let (input, content) = escaped(
+        is_not(format!("\\{}", end).as_str()),
+        '\\',
+        one_of(format!("n\\{}", end).as_str()),
+    )(input)?;
+    let (input, _) = tag(end.to_string().as_str())(input)?;
+
+    let content = content.replace(&format!("\\{}", end), &end.to_string());
+    let content = content.replace("\\\\", "\\");
+
+    Ok((input, content.split("\\n").map(|s| s.to_string()).collect()))
 }

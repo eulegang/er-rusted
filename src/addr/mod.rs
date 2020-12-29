@@ -6,7 +6,7 @@ mod parser;
 #[cfg(test)]
 mod test;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Point {
     Current,
@@ -17,7 +17,7 @@ pub enum Point {
     Mark(char),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Offset {
     Nil(Point),
@@ -25,7 +25,7 @@ pub enum Offset {
     Relb(Point, usize),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Address {
     Line(Offset),
@@ -119,6 +119,25 @@ impl LineResolver for Point {
 
                 None
             }
+        }
+    }
+}
+
+impl Offset {
+    pub const CURRENT: Offset = Offset::Nil(Point::Current);
+}
+
+impl Address {
+    pub const CURRENT: Address = Address::Line(Offset::Nil(Point::Current));
+    pub const FULL: Address = Address::Range {
+        start: Offset::Nil(Point::Abs(1)),
+        end: Offset::Nil(Point::Last),
+    };
+
+    pub fn to_line(self) -> Option<Offset> {
+        match self {
+            Address::Line(offset) => Some(offset),
+            _ => None,
         }
     }
 }

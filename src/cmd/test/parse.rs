@@ -51,6 +51,102 @@ mod delete {
     }
 }
 
+mod insert {
+    use super::*;
+
+    #[test]
+    fn default() {
+        assert_parse!("i", Command::Insert(Offset::Nil(Point::Current), None))
+    }
+
+    #[test]
+    fn inline() {
+        assert_parse!(
+            "i 'foobar\\nbaz'",
+            Command::Insert(
+                Offset::Nil(Point::Current),
+                Some(vec!["foobar".to_string(), "baz".to_string()])
+            )
+        );
+    }
+
+    #[test]
+    fn escaped_quote() {
+        assert_parse!(
+            "i 'foo\\'bar\\nbaz'",
+            Command::Insert(
+                Offset::Nil(Point::Current),
+                Some(vec!["foo'bar".to_string(), "baz".to_string()])
+            )
+        );
+    }
+}
+
+mod append {
+    use super::*;
+
+    #[test]
+    fn default() {
+        assert_parse!("a", Command::Append(Offset::Nil(Point::Current), None))
+    }
+
+    #[test]
+    fn inline() {
+        assert_parse!(
+            "a 'foobar\\nbaz'",
+            Command::Append(
+                Offset::Nil(Point::Current),
+                Some(vec!["foobar".to_string(), "baz".to_string()])
+            )
+        );
+    }
+
+    #[test]
+    fn escaped_quote() {
+        assert_parse!(
+            "a 'foo\\'bar\\nbaz'",
+            Command::Append(
+                Offset::Nil(Point::Current),
+                Some(vec!["foo'bar".to_string(), "baz".to_string()])
+            )
+        );
+    }
+}
+
+mod change {
+    use super::*;
+
+    #[test]
+    fn default() {
+        assert_parse!(
+            "c",
+            Command::Change(Address::Line(Offset::Nil(Point::Current)), None)
+        )
+    }
+
+    #[test]
+    fn inline() {
+        assert_parse!(
+            "c 'foobar\\nbaz'",
+            Command::Change(
+                Address::Line(Offset::Nil(Point::Current)),
+                Some(vec!["foobar".to_string(), "baz".to_string()])
+            )
+        );
+    }
+
+    #[test]
+    fn escaped_quote() {
+        assert_parse!(
+            "c 'foo\\'bar\\nbaz'",
+            Command::Change(
+                Address::Line(Offset::Nil(Point::Current)),
+                Some(vec!["foo'bar".to_string(), "baz".to_string()])
+            )
+        );
+    }
+}
+
 mod nop {
     use super::*;
 
