@@ -1,4 +1,5 @@
-use crate::cmd::{Cmd, Command, SysPoint};
+use crate::cmd::Command;
+use crate::syspoint::{Cmd, SysPoint};
 use crate::{
     addr::{Address, Offset, Point},
     cmd::SubstFlags,

@@ -5,7 +5,7 @@ use crate::{
 };
 
 use std::fs::File;
-use std::io::{self, ErrorKind, Read};
+use std::io::{self, ErrorKind};
 
 pub struct Interpreter {
     pub(crate) filelist: Vec<String>,
@@ -54,7 +54,8 @@ impl Interpreter {
         })
     }
 
-    pub(crate) fn from_reader<R: Read>(r: R) -> io::Result<Interpreter> {
+    #[cfg(test)]
+    pub(crate) fn from_reader<R: std::io::Read>(r: R) -> io::Result<Interpreter> {
         let buffer = Buffer::read(r)?;
         let env = Env::default();
 

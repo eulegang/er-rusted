@@ -1,5 +1,5 @@
 use super::Parsable;
-use crate::cmd::Cmd;
+use crate::syspoint::Cmd;
 use nom::{bytes::complete::tag, combinator::opt, IResult};
 
 impl Parsable for Cmd {

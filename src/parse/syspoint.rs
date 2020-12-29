@@ -1,5 +1,5 @@
 use super::Parsable;
-use crate::cmd::{Cmd, SysPoint};
+use crate::syspoint::{Cmd, SysPoint};
 use nom::{combinator::opt, IResult};
 
 impl Parsable for SysPoint {

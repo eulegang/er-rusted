@@ -1,6 +1,7 @@
 use crate::{
     addr::{Address, Offset, Point},
-    cmd::{Cmd, Command, SysPoint},
+    cmd::Command,
+    syspoint::{Cmd, SysPoint},
     Parsable,
 };
 
@@ -32,7 +33,7 @@ mod invoke;
 mod parse;
 
 mod util {
-    use crate::cmd::Cmd;
+    use crate::syspoint::Cmd;
 
     #[test]
     fn replace_default() {

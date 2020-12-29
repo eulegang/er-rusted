@@ -12,6 +12,7 @@ mod interp;
 mod parse;
 mod re;
 mod resolve;
+mod syspoint;
 mod ui;
 
 pub use buffer::Buffer;
