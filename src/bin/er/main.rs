@@ -1,4 +1,4 @@
-use er_rusted::{Repl, UI};
+use er_rusted::ui::{Repl, UI};
 use eyre::WrapErr;
 use structopt::StructOpt;
 
