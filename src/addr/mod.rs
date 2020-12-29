@@ -1,8 +1,6 @@
 use crate::interp::Interpreter;
 use crate::re::Re;
 
-mod parser;
-
 #[cfg(test)]
 mod test;
 

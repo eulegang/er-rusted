@@ -1,4 +1,4 @@
-use super::{Cmd, Command, SysPoint};
+use crate::cmd::{Cmd, Command, SysPoint};
 use crate::{
     addr::{Address, Offset, Point},
     cmd::SubstFlags,
@@ -272,42 +272,6 @@ impl Parsable for Command {
     }
 }
 
-impl FromStr for Command {
-    type Err = ();
-
-    fn from_str(input: &str) -> Result<Command, ()> {
-        Ok(all_consuming(Command::parse)(input).or(Err(()))?.1)
-    }
-}
-
-impl Parsable for SysPoint {
-    fn parse(input: &str) -> IResult<&str, SysPoint> {
-        if let (input, Some(cmd)) = opt(Cmd::parse)(input)? {
-            return Ok((input, SysPoint::Command(cmd)));
-        }
-
-        if input.trim().is_empty() {
-            return Ok(("", SysPoint::Filename));
-        }
-
-        Ok(("", SysPoint::File(input.to_string())))
-    }
-}
-
-impl Parsable for Cmd {
-    fn parse(input: &str) -> IResult<&str, Cmd> {
-        let (input, _) = tag("!")(input)?;
-        let (input, sig) = opt(tag("!"))(input)?;
-
-        match sig {
-            Some("!") => Ok((input, Cmd::Repeat)),
-            None => Ok(("", Cmd::System(input.trim().to_string()))),
-
-            _ => unreachable!(),
-        }
-    }
-}
-
 fn parse_str_lit(input: &str) -> IResult<&str, Vec<String>> {
     let (input, end) = one_of("\"'")(input)?;
     let (input, content) = escaped(
@@ -321,4 +285,12 @@ fn parse_str_lit(input: &str) -> IResult<&str, Vec<String>> {
     let content = content.replace("\\\\", "\\");
 
     Ok((input, content.split("\\n").map(|s| s.to_string()).collect()))
+}
+
+impl FromStr for Command {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<Command, ()> {
+        Ok(all_consuming(Command::parse)(input).or(Err(()))?.1)
+    }
 }

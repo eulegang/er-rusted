@@ -11,7 +11,6 @@ use std::io::{BufRead, BufReader, Write};
 use std::process::{Command as SysCmd, Stdio};
 
 mod action;
-mod parser;
 
 #[cfg(test)]
 mod test;
