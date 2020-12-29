@@ -1,5 +1,6 @@
 mod cmd;
 mod command;
+mod subst_flags;
 mod syspoint;
 
 mod address;

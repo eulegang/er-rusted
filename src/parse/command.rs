@@ -9,9 +9,8 @@ use crate::{
 use std::str::FromStr;
 
 use nom::{
-    branch::{alt, permutation},
     bytes::complete::{escaped, is_not, tag},
-    character::complete::{digit1, multispace0, one_of},
+    character::complete::{multispace0, one_of},
     combinator::{all_consuming, cond, opt},
     multi::separated_list1,
     sequence::{delimited, preceded},
@@ -196,22 +195,7 @@ impl Parsable for Command {
 
                 let (input, flags_sep) = opt(tag(&*format!("{}", sep)))(input)?;
 
-                let (input, flags) = cond(
-                    flags_sep.is_some(),
-                    permutation((opt(tag("p")), opt(alt((tag("g"), digit1))), opt(tag("p")))),
-                )(input)?;
-
-                let flags = flags.map(|(print, occurances, after_print)| {
-                    let occurances = match occurances {
-                        Some("g") => 0,
-                        Some(digits) => digits.parse().unwrap(),
-                        None => 1,
-                    };
-
-                    let print = print.or(after_print) == Some("p");
-
-                    SubstFlags { print, occurances }
-                });
+                let (input, flags) = cond(flags_sep.is_some(), SubstFlags::parse)(input)?;
 
                 let addr = addr.unwrap_or(Address::CURRENT);
                 Ok((input, Command::Subst(addr, re, pat, flags)))
