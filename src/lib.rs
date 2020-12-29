@@ -11,6 +11,7 @@ mod cmd;
 mod interp;
 mod parse;
 mod re;
+mod resolve;
 mod ui;
 
 pub use buffer::Buffer;

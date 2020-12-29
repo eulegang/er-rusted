@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::vec::Drain;
 
@@ -10,6 +11,8 @@ pub struct Buffer {
     /// 1-based indexing in lines
     pub(crate) cur: usize,
 
+    pub(crate) marks: HashMap<char, usize>,
+
     /// Line content
     pub(crate) lines: Vec<String>,
 }
@@ -18,8 +21,9 @@ impl Default for Buffer {
     fn default() -> Buffer {
         let cur = 1;
         let lines = vec![];
+        let marks = HashMap::new();
 
-        Buffer { cur, lines }
+        Buffer { cur, lines, marks }
     }
 }
 
@@ -27,6 +31,7 @@ impl Buffer {
     /// Create a Buffer from a read
     pub fn read(r: impl Read) -> io::Result<Buffer> {
         let mut buf = BufReader::new(r);
+        let marks = HashMap::new();
         let mut lines = Vec::new();
         let cur = 1;
 
@@ -35,7 +40,7 @@ impl Buffer {
             let bytes = buf.read_line(&mut line)?;
 
             if bytes == 0 {
-                break Ok(Buffer { cur, lines });
+                break Ok(Buffer { cur, lines, marks });
             } else {
                 chomp(&mut line);
                 lines.push(line);
@@ -137,6 +142,14 @@ impl Buffer {
 
     pub fn change(&mut self, start: usize, end: usize, lines: Vec<String>) {
         self.lines.splice(start - 1..end, lines);
+    }
+
+    pub fn make_mark(&mut self, mark: char, pos: usize) {
+        self.marks.insert(mark, pos);
+    }
+
+    pub fn mark(&self, mark: char) -> Option<usize> {
+        self.marks.get(&mark).cloned()
     }
 }
 

@@ -4,7 +4,6 @@ use crate::{
     Buffer,
 };
 
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, ErrorKind, Read};
 
@@ -16,7 +15,6 @@ pub struct Interpreter {
 }
 
 pub struct Env {
-    pub(crate) marks: HashMap<char, usize>,
     pub(crate) cut: Vec<String>,
     pub(crate) filename: Option<String>,
 
@@ -80,7 +78,6 @@ impl Interpreter {
 
 impl Default for Env {
     fn default() -> Env {
-        let marks = HashMap::new();
         let cut = Vec::new();
         let filename = None;
 
@@ -93,7 +90,6 @@ impl Default for Env {
         let last_wcmd = None;
 
         Env {
-            marks,
             cut,
             filename,
             last_re,

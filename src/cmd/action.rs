@@ -1,10 +1,11 @@
 use super::*;
-use crate::addr::{LineResolver, RangeResolver};
 use crate::interp::Interpreter;
 use regex::Captures;
 use std::cmp::{max, min};
 use std::fs::File;
 use std::io::ErrorKind;
+
+use crate::resolve::{LineResolver, RangeResolver};
 
 #[derive(Debug)]
 pub enum MarkMod {
@@ -26,7 +27,7 @@ impl Command {
 
         match self {
             Print(addr) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
 
                 for line in start..=end {
                     if let Some(l) = interp.buffer.line(line) {
@@ -38,7 +39,7 @@ impl Command {
             }
 
             Delete(addr) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
                 interp.buffer.remove(start, end);
                 interp.buffer.cur = start;
 
@@ -51,14 +52,14 @@ impl Command {
             }
 
             Mark(offset, mark) => {
-                let line = offset.resolve_line(interp).ok_or(())?;
-                interp.env.marks.insert(*mark, line);
+                let line = offset.resolve_line(&interp.buffer).ok_or(())?;
+                interp.buffer.marks.insert(*mark, line);
 
                 Ok((true, MarkMod::Nil))
             }
 
             Join(addr) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
 
                 let lines: Vec<String> = interp.buffer.remove(start, end).ok_or(())?.collect();
                 let mut it = lines.into_iter();
@@ -82,8 +83,8 @@ impl Command {
             }
 
             Move(addr, offset) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
-                let target = offset.resolve_line(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
+                let target = offset.resolve_line(&interp.buffer).ok_or(())?;
 
                 if start <= target && target <= end {
                     return Err(());
@@ -115,8 +116,8 @@ impl Command {
             }
 
             Transfer(addr, offset) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
-                let to = offset.resolve_line(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
+                let to = offset.resolve_line(&interp.buffer).ok_or(())?;
                 let lines = interp.buffer.range(start, end).ok_or(())?;
                 interp.buffer.append(to, lines);
 
@@ -128,7 +129,7 @@ impl Command {
             }
 
             Yank(addr) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
                 let lines = interp.buffer.range(start, end).ok_or(())?;
 
                 interp.env.cut = lines;
@@ -137,7 +138,7 @@ impl Command {
             }
 
             Paste(offset) => {
-                let line = offset.resolve_line(interp).ok_or(())?;
+                let line = offset.resolve_line(&interp.buffer).ok_or(())?;
                 interp.buffer.append(line, interp.env.cut.clone());
 
                 let markmod = MarkMod::After {
@@ -149,7 +150,7 @@ impl Command {
             }
 
             Write(addr, syncer, quit) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
                 let lines = interp.buffer.range(start, end).ok_or(())?.to_vec();
                 syncer.sync(&mut interp.buffer, &interp.env, &lines);
 
@@ -161,7 +162,7 @@ impl Command {
             }
 
             Read(offset, src) => {
-                let line = offset.resolve_line(interp).ok_or(())?;
+                let line = offset.resolve_line(&interp.buffer).ok_or(())?;
                 let lines = src.source(&interp.buffer, &interp.env).ok_or(())?;
                 let delta = lines.len();
                 if !interp.buffer.append(line, lines) {
@@ -194,7 +195,7 @@ impl Command {
             }
 
             Subst(addr, re, pat, flags) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
 
                 let flags = flags.unwrap_or_else(|| {
                     if re.is_none() && pat.is_none() {
@@ -229,7 +230,7 @@ impl Command {
             Quit => Ok((false, MarkMod::Nil)),
 
             Global(addr, re, cmd_list) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
 
                 let re = match (re, &interp.env.last_re) {
                     (Some(re), _) | (None, Some(re)) => re.clone(),
@@ -261,7 +262,7 @@ impl Command {
             }
 
             Void(addr, re, cmd_list) => {
-                let (start, end) = addr.resolve_range(interp).ok_or(())?;
+                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
 
                 let re = match (re, &interp.env.last_re) {
                     (Some(re), _) | (None, Some(re)) => re.clone(),
@@ -293,20 +294,20 @@ impl Command {
             }
 
             Nop(offset) => {
-                let line = offset.resolve_line(interp).ok_or(())?;
+                let line = offset.resolve_line(&interp.buffer).ok_or(())?;
                 interp.buffer.cur = line;
                 Ok((true, MarkMod::Nil))
             }
 
             Append(line_ref, Some(lines)) => {
-                let line = line_ref.resolve_line(interp).ok_or(())?;
+                let line = line_ref.resolve_line(&interp.buffer).ok_or(())?;
                 let delta = lines.len() as i64;
                 interp.buffer.append(line, lines.clone());
                 Ok((true, MarkMod::After { start: line, delta }))
             }
 
             Insert(line_ref, Some(lines)) => {
-                let line = line_ref.resolve_line(interp).ok_or(())?;
+                let line = line_ref.resolve_line(&interp.buffer).ok_or(())?;
                 let delta = lines.len() as i64;
                 interp.buffer.insert(line, lines.clone());
                 Ok((
@@ -319,7 +320,7 @@ impl Command {
             }
 
             Change(line_ref, Some(lines)) => {
-                let (start, end) = line_ref.resolve_range(interp).ok_or(())?;
+                let (start, end) = line_ref.resolve_range(&interp.buffer).ok_or(())?;
                 let delta = lines.len() as i64 - (1 + end - start) as i64;
                 interp.buffer.change(start, end, lines.clone());
                 Ok((true, MarkMod::After { start, delta }))
