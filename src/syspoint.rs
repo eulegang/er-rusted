@@ -6,16 +6,26 @@ use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command as SysCmd, Stdio};
 
+/// A reference point for a "System" resource
 #[derive(Debug, PartialEq)]
 pub enum SysPoint {
+    /// The filename of the current buffer
     Filename,
+
+    /// A file name to read or write tO
     File(String),
+
+    /// A command to run and feed lines into or out of
     Command(Cmd),
 }
 
+/// System command to be run via `sh -c <cmd>`
 #[derive(Debug, PartialEq)]
 pub enum Cmd {
+    /// Repeat the last cmd run.
     Repeat,
+
+    /// run a command via sh
     System(String),
 }
 

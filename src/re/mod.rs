@@ -46,20 +46,39 @@ impl PartialEq for Re {
     }
 }
 
+/// A pattern to be expanded from a regex capture
+///
+/// meant to be parsed from a string
+/// - "%" -> Replay
+/// - "&" -> A single whole
+/// - "\1" -> the first subgroup
+/// - "\\\\\1" -> a backslash and then the first subgroup
+///
+/// replay must be the whole string in order to be a replay otherwise it's a literal '%'
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Pat {
+    /// Replay the last expansion
     Replay,
+
+    /// Expand given the sub parts
     Expansion(Vec<Expansion>),
 }
 
+/// Sub parts of a Pat
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expansion {
+    /// A literal string not to be interpreted.
     Lit(String),
+
+    /// Replace with the whole capture of the regex
     Whole,
+
+    /// Replace with a specific subgroup in the capture
     Pos(usize),
 }
 
 impl Pat {
+    /// Expand the pattern out of a capture
     pub fn expand(&self, captures: &Captures) -> String {
         if let Pat::Expansion(exps) = self {
             let mut buf = String::new();
@@ -78,11 +97,13 @@ impl Pat {
         }
     }
 
+    /// Tests whether or not a Pat will panic if ran against captures of a regex (do to over
+    /// indexing)
     pub fn compatible(&self, regex: &Regex) -> bool {
         regex.captures_len() > self.max_pos()
     }
 
-    pub fn max_pos(&self) -> usize {
+    fn max_pos(&self) -> usize {
         match self {
             Pat::Replay => 0,
             Pat::Expansion(v) => {

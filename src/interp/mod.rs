@@ -7,6 +7,7 @@ use crate::{
 use std::fs::File;
 use std::io::{self, ErrorKind};
 
+/// Interprets commands on a buffer
 pub struct Interpreter {
     pub(crate) filelist: Vec<String>,
     pub(crate) filepos: usize,
@@ -28,6 +29,7 @@ pub struct Env {
 }
 
 impl Interpreter {
+    /// Creates an interpreter with multiple files in it's arglisT
     pub fn new(files: Vec<String>) -> io::Result<Interpreter> {
         let (filename, buffer) = if let Some(file) = files.get(0) {
             let buffer = match File::open(file) {
@@ -70,6 +72,7 @@ impl Interpreter {
         })
     }
 
+    /// Executes a command on the given buffer
     pub fn exec(&mut self, cmd: Command) -> Result<bool, ()> {
         let (res, _) = cmd.invoke(self)?;
 

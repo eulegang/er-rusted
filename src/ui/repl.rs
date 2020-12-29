@@ -5,6 +5,7 @@ use eyre::WrapErr;
 use rustyline::{error::ReadlineError, Config, EditMode, Editor, Helper};
 use std::str::FromStr;
 
+/// Interact with a user via the classic ed prompt.
 pub struct Repl {
     interp: Interpreter,
 }

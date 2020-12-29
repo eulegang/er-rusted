@@ -83,6 +83,7 @@ impl Buffer {
         }
     }
 
+    /// Replace a specified line with a new one.
     pub fn replace_line(&mut self, lineno: usize, line: String) -> Option<String> {
         let realign = lineno.checked_sub(1).unwrap_or(0);
         if realign < self.lines.len() {
@@ -92,6 +93,7 @@ impl Buffer {
         }
     }
 
+    /// Removes lines from start to end inclusive
     pub fn remove(&mut self, start: usize, end: usize) -> Option<Drain<String>> {
         if 1 <= start && end <= self.lines.len() {
             self.cur = start;
@@ -101,6 +103,7 @@ impl Buffer {
         }
     }
 
+    /// Insert lines before a point in the buffer
     pub fn insert(&mut self, line: usize, lines: Vec<String>) -> bool {
         let realign = line.checked_sub(1).unwrap_or(0);
 
@@ -113,6 +116,7 @@ impl Buffer {
         }
     }
 
+    /// Obtain a range of lines from the buffer
     pub fn range(&self, start: usize, end: usize) -> Option<Vec<String>> {
         let begin = start.checked_sub(1).unwrap_or(0);
         let end = end.checked_sub(1).unwrap_or(0);
@@ -130,6 +134,7 @@ impl Buffer {
         Some(buf)
     }
 
+    /// Append lines after a point in the buffer
     pub fn append(&mut self, line: usize, lines: Vec<String>) -> bool {
         if line <= self.lines.len() {
             self.cur = line + lines.len();
@@ -140,19 +145,23 @@ impl Buffer {
         }
     }
 
+    /// change lines in a buffer to a new set of lines
     pub fn change(&mut self, start: usize, end: usize, lines: Vec<String>) {
         self.lines.splice(start - 1..end, lines);
     }
 
+    /// Mark a position in the buffer
     pub fn make_mark(&mut self, mark: char, pos: usize) {
         self.marks.insert(mark, pos);
     }
 
+    /// Get the position of a mark
     pub fn mark(&self, mark: char) -> Option<usize> {
         self.marks.get(&mark).cloned()
     }
 }
 
+/// Chomp newlines (nl and cr) off of a string
 pub fn chomp(line: &mut String) {
     let bytes = line.as_bytes();
     let has_nl = bytes.len() > 0 && bytes[bytes.len() - 1] == 10;

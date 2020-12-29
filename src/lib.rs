@@ -1,3 +1,9 @@
+//!
+//! Text editing like the olde times
+//!
+
+#![deny(missing_docs)]
+
 #[cfg(test)]
 macro_rules! re {
     ($regex: expr) => {
@@ -20,7 +26,7 @@ pub use buffer::Buffer;
 pub use cmd::{Command, SubstFlags};
 pub use interp::Interpreter;
 pub use re::{Expansion, Pat, Re};
-pub use syspoint::SysPoint;
+pub use syspoint::{Cmd, SysPoint};
 
 pub(crate) use parse::Parsable;
 
