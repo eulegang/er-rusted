@@ -8,13 +8,22 @@ struct Opt {
 
     #[structopt(short = "f", long = "file", name = "file")]
     script: Option<String>,
+
+    #[structopt(short = "e", long = "expr", name = "expr", conflicts_with("file"))]
+    expression: Option<String>,
 }
 
 fn main() -> eyre::Result<()> {
     let opt = Opt::from_args();
 
     if let Some(file) = opt.script {
-        let mut script = Script::from_file(&file, opt.files).wrap_err("failed to build ui")?;
+        let mut script =
+            Script::from_file(&file, opt.files).wrap_err("failed to build script from file")?;
+
+        script.run()
+    } else if let Some(expr) = opt.expression {
+        let mut script = Script::from_expr(&expr, opt.files)
+            .wrap_err("failed to build script from expression")?;
 
         script.run()
     } else {

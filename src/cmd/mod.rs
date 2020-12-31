@@ -113,8 +113,6 @@ impl Default for SubstFlags {
 impl Command {
     /// Extracts a list of commands from a string or gives what command fails to parse and the line number
     pub fn from_content(content: &str) -> Result<Vec<Command>, (&str, usize)> {
-        use crate::parse::Parsable;
-
         let mut lines = content.split("\n").enumerate();
         let mut cmds = Vec::new();
 
@@ -131,15 +129,30 @@ impl Command {
                 continue;
             }
 
-            if let Ok((rest, cmd)) = Command::parse(line) {
+            if let Ok((rest, new_commands)) = Command::parse_multi(line) {
                 if !rest.trim().is_empty() {
                     return Err((origin, pos));
                 }
 
-                cmds.push(cmd);
+                cmds.extend(new_commands);
             } else {
                 return Err((origin, pos));
             }
+        }
+
+        Ok(cmds)
+    }
+
+    /// Parse commands from one string
+    pub fn from_expr(mut content: &str) -> Result<Vec<Command>, &str> {
+        if let Some(pos) = content.find('#') {
+            content = content.split_at(pos).0;
+        }
+
+        let (rest, cmds) = Command::parse_multi(content).or(Err(content))?;
+
+        if !rest.trim().is_empty() {
+            return Err(content);
         }
 
         Ok(cmds)

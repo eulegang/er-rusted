@@ -257,6 +257,15 @@ impl Parsable for Command {
     }
 }
 
+impl Command {
+    pub(crate) fn parse_multi(input: &str) -> IResult<&str, Vec<Command>> {
+        separated_list1(
+            delimited(multispace0, tag("|"), multispace0),
+            Command::parse,
+        )(input)
+    }
+}
+
 fn parse_str_lit(input: &str) -> IResult<&str, Vec<String>> {
     let (input, end) = one_of("\"'")(input)?;
     let (input, content) = escaped(

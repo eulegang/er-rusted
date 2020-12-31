@@ -27,6 +27,16 @@ impl Script {
 
         Ok(Script { commands, files })
     }
+
+    /// Create a script from an expression and run it against files
+    pub fn from_expr(expr: &str, files: Vec<String>) -> eyre::Result<Self> {
+        let commands = match Command::from_expr(expr) {
+            Ok(cmds) => cmds,
+            Err(_) => bail!("{} is an invalid expression", expr),
+        };
+
+        Ok(Script { commands, files })
+    }
 }
 
 impl UI for Script {
