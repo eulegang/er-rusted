@@ -1,17 +1,22 @@
 use super::UI;
 use crate::{cmd::Command, interp::Interpreter};
 use eyre::{bail, WrapErr};
-use std::fs::read_to_string;
+use std::fs::{copy, read_to_string};
 
 /// Run an er script
 pub struct Script {
     files: Vec<String>,
+    backup: Option<String>,
     commands: Vec<Command>,
 }
 
 impl Script {
     /// Create a script with a filename and run it against files
-    pub fn from_file(script: &str, files: Vec<String>) -> eyre::Result<Self> {
+    pub fn from_file(
+        script: &str,
+        backup: Option<String>,
+        files: Vec<String>,
+    ) -> eyre::Result<Self> {
         let content = read_to_string(script).wrap_err("failed to read script")?;
 
         let commands = match Command::from_content(&content) {
@@ -25,17 +30,25 @@ impl Script {
             }
         }
 
-        Ok(Script { commands, files })
+        Ok(Script {
+            commands,
+            backup,
+            files,
+        })
     }
 
     /// Create a script from an expression and run it against files
-    pub fn from_expr(expr: &str, files: Vec<String>) -> eyre::Result<Self> {
+    pub fn from_expr(expr: &str, backup: Option<String>, files: Vec<String>) -> eyre::Result<Self> {
         let commands = match Command::from_expr(expr) {
             Ok(cmds) => cmds,
             Err(_) => bail!("{} is an invalid expression", expr),
         };
 
-        Ok(Script { commands, files })
+        Ok(Script {
+            commands,
+            backup,
+            files,
+        })
     }
 }
 
@@ -43,6 +56,13 @@ impl UI for Script {
     fn run(&mut self) -> eyre::Result<()> {
         'files: for file in &self.files {
             let mut interp = Interpreter::new(vec![file.clone()]).unwrap();
+
+            if let Some(backup) = &self.backup {
+                if let Err(e) = copy(&file, format!("{}.{}", file, backup)) {
+                    eprintln!("failed to backup {}: {}", file, e);
+                    continue;
+                }
+            }
 
             for cmd in &self.commands {
                 match interp.exec(cmd) {

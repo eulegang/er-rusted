@@ -6,6 +6,9 @@ use structopt::StructOpt;
 struct Opt {
     files: Vec<String>,
 
+    #[structopt(short, long)]
+    inplace: Option<String>,
+
     #[structopt(short = "f", long = "file", name = "file")]
     script: Option<String>,
 
@@ -17,12 +20,12 @@ fn main() -> eyre::Result<()> {
     let opt = Opt::from_args();
 
     if let Some(file) = opt.script {
-        let mut script =
-            Script::from_file(&file, opt.files).wrap_err("failed to build script from file")?;
+        let mut script = Script::from_file(&file, opt.inplace, opt.files)
+            .wrap_err("failed to build script from file")?;
 
         script.run()
     } else if let Some(expr) = opt.expression {
-        let mut script = Script::from_expr(&expr, opt.files)
+        let mut script = Script::from_expr(&expr, opt.inplace, opt.files)
             .wrap_err("failed to build script from expression")?;
 
         script.run()

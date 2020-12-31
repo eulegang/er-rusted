@@ -83,7 +83,7 @@ impl Interpreter {
     pub fn ensure_clean(&mut self) -> io::Result<()> {
         if self.buffer.is_dirty() {
             if let Some(path) = &self.env.filename {
-                let mut file = OpenOptions::new().write(true).open(path)?;
+                let mut file = OpenOptions::new().write(true).truncate(true).open(path)?;
 
                 self.buffer.write(&mut file)?;
             }
