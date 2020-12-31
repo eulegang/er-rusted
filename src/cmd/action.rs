@@ -54,7 +54,7 @@ impl Command {
 
             Mark(offset, mark) => {
                 let line = offset.resolve_line(&interp.buffer).ok_or(())?;
-                interp.buffer.marks.insert(*mark, line);
+                interp.buffer.make_mark(*mark, line);
 
                 Ok((true, MarkMod::Nil))
             }

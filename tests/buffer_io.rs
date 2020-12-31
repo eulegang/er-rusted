@@ -36,7 +36,7 @@ fn test_read() {
 #[test]
 fn test_write() {
     const CONTENT: &str = "hello\nworld";
-    let buf = Buffer::read(CONTENT.as_bytes()).unwrap();
+    let mut buf = Buffer::read(CONTENT.as_bytes()).unwrap();
 
     let mut bytes = Vec::new();
     let written = buf.write(&mut bytes).expect("write to work");

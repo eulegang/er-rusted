@@ -4,7 +4,7 @@ use crate::{
     Buffer,
 };
 
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{self, ErrorKind};
 
 /// Interprets commands on a buffer
@@ -73,10 +73,23 @@ impl Interpreter {
     }
 
     /// Executes a command on the given buffer
-    pub fn exec(&mut self, cmd: Command) -> Result<bool, ()> {
+    pub fn exec(&mut self, cmd: &Command) -> Result<bool, ()> {
         let (res, _) = cmd.invoke(self)?;
 
         Ok(res)
+    }
+
+    /// Writes to filename if buffer is dirty
+    pub fn ensure_clean(&mut self) -> io::Result<()> {
+        if self.buffer.is_dirty() {
+            if let Some(path) = &self.env.filename {
+                let mut file = OpenOptions::new().write(true).open(path)?;
+
+                self.buffer.write(&mut file)?;
+            }
+        }
+
+        Ok(())
     }
 }
 

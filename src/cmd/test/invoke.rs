@@ -25,7 +25,7 @@ barfoo
 
         let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
 
-        assert_eq!(Ok(true), interp.exec(cmd));
+        assert_eq!(Ok(true), interp.exec(&cmd));
 
         assert_content!(interp.buffer, "bar\n");
     }
@@ -36,7 +36,7 @@ barfoo
 
         let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
 
-        assert_eq!(Ok(true), interp.exec(cmd));
+        assert_eq!(Ok(true), interp.exec(&cmd));
 
         assert_content!(interp.buffer, "foobar\nbar\nbarfoo\nfoobar\nbarfoo\n");
     }
@@ -47,7 +47,7 @@ barfoo
 
         let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
 
-        assert_eq!(Ok(true), interp.exec(cmd));
+        assert_eq!(Ok(true), interp.exec(&cmd));
         assert_content!(interp.buffer, "bar\nfoobar\nbarfoo\n");
     }
 
@@ -57,7 +57,7 @@ barfoo
 
         let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
 
-        assert_eq!(Ok(true), interp.exec(cmd));
+        assert_eq!(Ok(true), interp.exec(&cmd));
 
         assert_content!(interp.buffer, "barfoo\nfoobar\nbar\n");
     }
@@ -77,7 +77,7 @@ fn bar() -> usize {
 
         let mut interp = Interpreter::from_reader(CODE.trim().as_bytes()).expect("should read");
 
-        assert_eq!(Ok(true), interp.exec(cmd));
+        assert_eq!(Ok(true), interp.exec(&cmd));
 
         assert_content!(
             interp.buffer,
@@ -101,7 +101,7 @@ barfoo
 
         let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
 
-        assert_eq!(Ok(true), interp.exec(cmd));
+        assert_eq!(Ok(true), interp.exec(&cmd));
 
         assert_content!(interp.buffer, "foobar\nbarfoo\n");
     }
@@ -123,7 +123,7 @@ barfoo
 
         let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
 
-        assert_eq!(Ok(true), interp.exec(cmd));
+        assert_eq!(Ok(true), interp.exec(&cmd));
 
         assert_content!(interp.buffer, "needle\nfoobar\nbar\nbarfoo\n");
     }
@@ -134,7 +134,7 @@ barfoo
 
         let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
 
-        assert_eq!(Ok(true), interp.exec(cmd));
+        assert_eq!(Ok(true), interp.exec(&cmd));
 
         assert_content!(interp.buffer, "foobar\nbar\nbarfoo\nneedle\n");
     }
@@ -156,7 +156,7 @@ barfoo
 
         let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
 
-        assert_eq!(Ok(true), interp.exec(cmd));
+        assert_eq!(Ok(true), interp.exec(&cmd));
 
         assert_content!(interp.buffer, "foobar bar needle\nbarfoo\n");
     }

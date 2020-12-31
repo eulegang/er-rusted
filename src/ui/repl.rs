@@ -11,12 +11,6 @@ pub struct Repl {
 }
 
 impl UI for Repl {
-    fn new(files: Vec<String>) -> eyre::Result<Self> {
-        let interp = Interpreter::new(files).wrap_err("failed to build")?;
-
-        Ok(Repl { interp })
-    }
-
     fn run(&mut self) -> eyre::Result<()> {
         let editor_config = Config::builder().edit_mode(EditMode::Vi).build();
         let mut rl = Editor::<()>::with_config(editor_config);
@@ -64,6 +58,13 @@ enum LineHandling {
 }
 
 impl Repl {
+    /// Creates a new repl
+    pub fn new(files: Vec<String>) -> eyre::Result<Self> {
+        let interp = Interpreter::new(files).wrap_err("failed to build")?;
+
+        Ok(Repl { interp })
+    }
+
     fn read_line<T: Helper>(&self, rl: &mut Editor<T>) -> Result<String, LineHandling> {
         use LineHandling::*;
         let mut line = match rl.readline(":") {
@@ -116,7 +117,7 @@ impl Repl {
             cmd.inject(lines);
         }
 
-        match self.interp.exec(cmd) {
+        match self.interp.exec(&cmd) {
             Err(()) => InvalidInvocation,
             Ok(true) => Next,
             Ok(false) => Quit,
