@@ -129,15 +129,33 @@ impl Command {
                 continue;
             }
 
-            if let Ok((rest, new_commands)) = Command::parse_multi(line) {
-                if !rest.trim().is_empty() {
-                    return Err((origin, pos));
-                }
+            let mut new_commands = match Command::parse_multi(line) {
+                Ok((rest, cmds)) if rest.trim().is_empty() => cmds,
+                _ => return Err((origin, pos)),
+            };
 
-                cmds.extend(new_commands);
-            } else {
-                return Err((origin, pos));
+            for cmd in &mut new_commands {
+                if cmd.needs_text() {
+                    let mut text = Vec::new();
+
+                    loop {
+                        let line = match lines.next() {
+                            Some((_, line)) => line,
+                            _ => return Err((origin, pos)),
+                        };
+
+                        if line == "." {
+                            break;
+                        }
+
+                        text.push(line.to_string());
+                    }
+
+                    cmd.inject(text);
+                }
             }
+
+            cmds.extend(new_commands);
         }
 
         Ok(cmds)
