@@ -2,7 +2,7 @@
 //! Text editing like the olde times
 //!
 
-#![deny(missing_docs)]
+#![warn(missing_docs)]
 
 #[cfg(test)]
 macro_rules! re {
