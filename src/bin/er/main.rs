@@ -1,5 +1,5 @@
 use er_rusted::ui::{Repl, Script, UI};
-use eyre::WrapErr;
+use eyre::{bail, WrapErr};
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -18,6 +18,10 @@ fn main() -> eyre::Result<()> {
 
         script.run()
     } else {
+        if !atty::is(atty::Stream::Stdin) {
+            bail!("prompt used noninteractively");
+        }
+
         let mut repl = Repl::new(opt.files).wrap_err("failed to build ui")?;
 
         repl.run()

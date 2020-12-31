@@ -156,6 +156,7 @@ dependencies = [
 name = "er-rusted"
 version = "0.1.0"
 dependencies = [
+ "atty",
  "eyre",
  "nom",
  "regex",
