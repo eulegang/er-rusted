@@ -32,16 +32,24 @@ impl Parsable for Command {
                 return Ok((input, Command::Run(cmd)));
             }
 
-            if let (input, Some(ch)) = opt(one_of("<>"))(input)? {
+            if let (input, Some(ch)) = opt(one_of("<>e"))(input)? {
                 return match ch {
                     '>' => Ok((input, Command::NextBuffer)),
                     '<' => Ok((input, Command::PrevBuffer)),
+
+                    'e' => {
+                        let (input, _) = multispace0(input)?;
+                        let (input, syspoint) = SysPoint::parse(input)?;
+
+                        Ok((input, Command::Edit(syspoint)))
+                    }
+
                     _ => unreachable!(),
                 };
             }
         }
 
-        let (input, op) = opt(one_of("pdacikjqmtyxswrgv"))(input)?;
+        let (input, op) = opt(one_of("pdacikjqmtyxswrgve"))(input)?;
 
         match op {
             Some('p') => Ok((input, Command::Print(addr.unwrap_or(Address::CURRENT)))),
@@ -252,6 +260,7 @@ impl Parsable for Command {
 
                 Ok((input, Command::Void(addr, re, cmd_list)))
             }
+
             _ => unreachable!(),
         }
     }

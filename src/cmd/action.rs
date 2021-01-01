@@ -195,6 +195,30 @@ impl Command {
                 Ok((true, MarkMod::Nil))
             }
 
+            Edit(point) => {
+                match point {
+                    SysPoint::Filename => {
+                        let filename = interp.env.filename.as_ref().ok_or(())?;
+                        let read = File::open(filename).or(Err(()))?;
+                        interp.buffer.load(read).or(Err(()))?;
+                    }
+
+                    SysPoint::File(filename) => {
+                        let read = File::open(filename).or(Err(()))?;
+                        interp.buffer.load(read).or(Err(()))?;
+                        interp.env.filename = Some(filename.clone());
+                    }
+
+                    SysPoint::Command(cmd) => {
+                        let read = cmd.read(&interp.env).or(Err(()))?;
+                        interp.buffer.load(&*read).or(Err(()))?;
+                        interp.env.filename = None
+                    }
+                };
+
+                Ok((true, MarkMod::Nil))
+            }
+
             Subst(addr, re, pat, flags) => {
                 let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
 

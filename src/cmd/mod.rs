@@ -43,8 +43,12 @@ pub enum Command {
     Write(Address, SysPoint, bool),
     /// Read the contents of a syspoint and put them at a point in the buffer
     Read(Offset, SysPoint),
+
     /// Run a system command
     Run(Cmd),
+
+    /// Edit a file
+    Edit(SysPoint),
 
     /// Search for a set (non contigous) of lines that match a regex and run commands with them
     Global(Address, Option<Re>, Vec<Command>),

@@ -78,6 +78,35 @@ impl Buffer {
         Ok(written)
     }
 
+    /// Loads a read into the buffer
+    ///
+    /// - lines are replaced with the reads lines
+    /// - keep mark state around
+    /// - keep cur the same unless it overflows the new lines
+    pub fn load(&mut self, r: impl Read) -> io::Result<()> {
+        let mut buf = BufReader::new(r);
+        let mut lines = Vec::new();
+
+        loop {
+            let mut line = String::new();
+            let bytes = buf.read_line(&mut line)?;
+
+            if bytes == 0 {
+                self.lines = lines;
+                self.dirty = false;
+
+                if self.lines.len() < self.cur {
+                    self.cur = self.lines.len();
+                }
+
+                break Ok(());
+            } else {
+                chomp(&mut line);
+                lines.push(line);
+            }
+        }
+    }
+
     /// gives the current lines
     pub fn cursor(&self) -> usize {
         self.cur

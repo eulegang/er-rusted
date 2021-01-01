@@ -196,6 +196,23 @@ impl Sourcer for Cmd {
 }
 
 impl Cmd {
+    /// Runs command and read stdio
+    pub fn read(&self, env: &Env) -> Result<Vec<u8>, ()> {
+        let cmd = self
+            .replace_filename(env.filename.as_deref(), env.last_rcmd.as_deref())
+            .ok_or(())?;
+
+        let out = SysCmd::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .stdout(Stdio::piped())
+            .output()
+            .or(Err(()))?
+            .stdout;
+
+        Ok(out)
+    }
+
     pub(crate) fn replace_filename(
         &self,
         filename: Option<&str>,
