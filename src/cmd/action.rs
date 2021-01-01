@@ -39,6 +39,21 @@ impl Command {
                 Ok((true, MarkMod::Nil))
             }
 
+            Scroll(offset, num) => {
+                let line = offset.resolve_line(&interp.buffer).ok_or(())?;
+                let num = num.or(interp.env.scroll).unwrap_or(22);
+                let pad = digits(interp.buffer.lines());
+
+                for pos in line..(line + num) {
+                    if let Some(l) = interp.buffer.line(pos) {
+                        println!("{:width$} {}", pos, l, width = pad);
+                        interp.buffer.cur = pos;
+                    }
+                }
+
+                Ok((true, MarkMod::Nil))
+            }
+
             Delete(addr) => {
                 let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
                 interp.buffer.remove(start, end);
@@ -464,5 +479,17 @@ impl MarkMod {
         } else {
             *mark -= mag;
         }
+    }
+}
+
+fn digits(mut x: usize) -> usize {
+    let mut result = 0;
+    loop {
+        if x == 0 {
+            break result;
+        }
+
+        x /= 10;
+        result += 1;
     }
 }

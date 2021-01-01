@@ -18,6 +18,7 @@ pub struct Interpreter {
 pub struct Env {
     pub(crate) cut: Vec<String>,
     pub(crate) filename: Option<String>,
+    pub(crate) scroll: Option<usize>,
 
     pub(crate) last_re: Option<Re>,
     pub(crate) last_pat: Option<Pat>,
@@ -96,6 +97,7 @@ impl Interpreter {
 impl Default for Env {
     fn default() -> Env {
         let cut = Vec::new();
+        let scroll = None;
         let filename = None;
 
         let last_re = None;
@@ -109,6 +111,8 @@ impl Default for Env {
         Env {
             cut,
             filename,
+            scroll,
+
             last_re,
             last_pat,
             last_flags,

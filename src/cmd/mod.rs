@@ -17,6 +17,9 @@ pub enum Command {
     /// Print lines within an address
     Print(Address),
 
+    /// Scroll from offset size amount
+    Scroll(Offset, Option<usize>),
+
     /// Delete the lines within an address
     Delete(Address),
 

@@ -10,7 +10,7 @@ use std::str::FromStr;
 
 use nom::{
     bytes::complete::{escaped, is_not, tag},
-    character::complete::{multispace0, one_of},
+    character::complete::{digit1, multispace0, one_of},
     combinator::{all_consuming, cond, opt},
     multi::separated_list1,
     sequence::{delimited, preceded},
@@ -49,10 +49,23 @@ impl Parsable for Command {
             }
         }
 
-        let (input, op) = opt(one_of("pdacikjqmtyxswrgve"))(input)?;
+        let (input, op) = opt(one_of("pdacikjqmtyxswrgvez"))(input)?;
 
         match op {
             Some('p') => Ok((input, Command::Print(addr.unwrap_or(Address::CURRENT)))),
+
+            Some('z') => {
+                let offset = addr
+                    .unwrap_or(Address::CURRENT)
+                    .to_line()
+                    .ok_or(nom_bail!(input))?;
+
+                let (input, digits) = opt(digit1)(input)?;
+
+                let size = digits.map(|s| s.parse().unwrap());
+
+                Ok((input, Command::Scroll(offset, size)))
+            }
 
             Some('d') => Ok((input, Command::Delete(addr.unwrap_or(Address::CURRENT)))),
 
