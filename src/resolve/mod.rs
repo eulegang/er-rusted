@@ -38,13 +38,13 @@ impl LineResolver for Offset {
 impl LineResolver for Point {
     fn resolve_line(&self, buffer: &Buffer) -> Option<usize> {
         match self {
-            Point::Current => Some(buffer.cur),
+            Point::Current => Some(buffer.cursor()),
             Point::Abs(s) => Some(s.clone()),
             Point::Mark(ch) => buffer.mark(*ch),
             Point::Last => Some(buffer.lines()),
 
             Point::Ref(re) => {
-                let mut i = buffer.cur + 1;
+                let mut i = buffer.cursor() + 1;
 
                 while let Some(line) = buffer.line(i) {
                     if re.is_match(line) {
@@ -58,7 +58,7 @@ impl LineResolver for Point {
             }
 
             Point::Reb(re) => {
-                let mut i = buffer.cur - 1;
+                let mut i = buffer.cursor() - 1;
 
                 while let Some(line) = buffer.line(i) {
                     if re.is_match(line) {

@@ -1,4 +1,4 @@
-use er_rusted::ui::{Repl, Script, UI};
+use er_rusted::ui::{Repl, Script, Tui, UI};
 use eyre::{bail, WrapErr};
 use structopt::StructOpt;
 
@@ -14,6 +14,9 @@ struct Opt {
 
     #[structopt(short = "e", long = "expr", name = "expr", conflicts_with("file"))]
     expression: Option<String>,
+
+    #[structopt(short = "V", long = "visual")]
+    visual: bool,
 }
 
 fn main() -> eyre::Result<()> {
@@ -34,8 +37,16 @@ fn main() -> eyre::Result<()> {
             bail!("prompt used noninteractively");
         }
 
-        let mut repl = Repl::new(opt.files).wrap_err("failed to build ui")?;
+        let visual_env = std::env::var("ER_VISUAL").is_ok();
 
-        repl.run()
+        if opt.visual || visual_env {
+            let mut tui = Tui::new(opt.files).wrap_err("failed to build tui")?;
+
+            tui.run()
+        } else {
+            let mut repl = Repl::new(opt.files).wrap_err("failed to build ui")?;
+
+            repl.run()
+        }
     }
 }

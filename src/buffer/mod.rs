@@ -9,11 +9,9 @@ mod test;
 #[derive(Debug)]
 pub struct Buffer {
     /// 1-based indexing in lines
-    pub(crate) cur: usize,
+    cur: usize,
 
-    /// Line content
-    pub(crate) lines: Vec<String>,
-
+    lines: Vec<String>,
     marks: HashMap<char, usize>,
     dirty: bool,
 }
@@ -112,6 +110,21 @@ impl Buffer {
         self.cur
     }
 
+    /// Sets the cursor
+    pub fn set_cursor(&mut self, pos: usize) {
+        self.cur = pos.min(self.lines.len())
+    }
+
+    /// Scrolls the cursor forward an amount
+    pub fn scroll_forward(&mut self, delta: usize) {
+        self.set_cursor(self.cursor() + delta)
+    }
+
+    /// Scrolls the cursor backwards an amount
+    pub fn scroll_backward(&mut self, delta: usize) {
+        self.cur = self.cursor().checked_sub(delta).unwrap_or(0);
+    }
+
     /// gives the number of lines
     pub fn lines(&self) -> usize {
         self.lines.len()
@@ -124,6 +137,17 @@ impl Buffer {
         } else {
             None
         }
+    }
+
+    /// Reverse lookup a mark
+    pub fn has_mark(&self, line: usize) -> Option<char> {
+        for (mk, pos) in &self.marks {
+            if *pos == line {
+                return Some(*mk);
+            }
+        }
+
+        None
     }
 
     /// Replace a specified line with a new one.

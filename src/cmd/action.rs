@@ -47,7 +47,7 @@ impl Command {
                 for pos in line..(line + num) {
                     if let Some(l) = interp.buffer.line(pos) {
                         println!("{:width$} {}", pos, l, width = pad);
-                        interp.buffer.cur = pos;
+                        interp.buffer.set_cursor(pos);
                     }
                 }
 
@@ -57,7 +57,7 @@ impl Command {
             Delete(addr) => {
                 let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
                 interp.buffer.remove(start, end);
-                interp.buffer.cur = start;
+                interp.buffer.set_cursor(start);
 
                 let markmod = MarkMod::After {
                     start,
@@ -287,7 +287,7 @@ impl Command {
                 }
 
                 for mark_idx in 0..marked.len() {
-                    interp.buffer.cur = marked[mark_idx];
+                    interp.buffer.set_cursor(marked[mark_idx]);
                     for cmd in cmd_list {
                         let (cont, markmod) = cmd.invoke(interp)?;
                         if !cont {
@@ -319,7 +319,7 @@ impl Command {
                 }
 
                 for mark_idx in 0..marked.len() {
-                    interp.buffer.cur = marked[mark_idx];
+                    interp.buffer.set_cursor(marked[mark_idx]);
                     for cmd in cmd_list {
                         let (cont, markmod) = cmd.invoke(interp)?;
                         if !cont {
@@ -335,7 +335,7 @@ impl Command {
 
             Nop(offset) => {
                 let line = offset.resolve_line(&interp.buffer).ok_or(())?;
-                interp.buffer.cur = line;
+                interp.buffer.set_cursor(line);
                 Ok((true, MarkMod::Nil))
             }
 
