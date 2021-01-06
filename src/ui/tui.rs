@@ -15,7 +15,7 @@ use std::str::FromStr;
 pub struct Tui {
     interp: Interpreter,
     stdout: Stdout,
-    window_lock: Option<WindowLock>,
+    window_lock: WindowLock,
     cmd: String,
 }
 
@@ -25,7 +25,7 @@ impl Tui {
         let interp = Interpreter::new(files).wrap_err("failed to build")?;
         let stdout = std::io::stdout();
         let cmd = String::new();
-        let window_lock = Some(WindowLock::Top);
+        let window_lock = WindowLock::Top;
 
         Ok(Tui {
             interp,
@@ -44,20 +44,21 @@ impl Tui {
 
         let pad = digits(self.interp.buffer.lines());
 
-        if let Some(lock) = &self.window_lock {
-            match lock.find_pos(height, self.interp.buffer.cursor()) {
-                Ok(s) => offset = s,
+        match self
+            .window_lock
+            .find_pos(height, self.interp.buffer.cursor())
+        {
+            Ok(s) => offset = s,
 
-                Err(s) => {
-                    for _ in 1..s {
-                        self.queue(MoveToNextLine(1))?
-                            .queue(Print(style("~").with(Color::Blue)))?;
-                    }
-
-                    height -= s - 1;
+            Err(s) => {
+                for _ in 1..s {
+                    self.queue(MoveToNextLine(1))?
+                        .queue(Print(style("~").with(Color::Blue)))?;
                 }
-            };
-        }
+
+                height -= s - 1;
+            }
+        };
 
         for pos in 1..height {
             let pos = pos + offset;
@@ -94,21 +95,7 @@ impl Tui {
         self.stdout.flush()
     }
 
-    fn init(&mut self) -> eyre::Result<()> {
-        self.queue(Clear(ClearType::All))?
-            .queue(cursor::Hide)?
-            .queue(MoveTo(0, 0))?
-            .queue(Print(": "))?
-            .flush()?;
-
-        self.draw_buffer()?;
-
-        Ok(())
-    }
-
-    fn do_run(&mut self) -> eyre::Result<()> {
-        self.init()?;
-
+    fn input_loop(&mut self) -> eyre::Result<()> {
         loop {
             if !self.process(read()?)? {
                 break Ok(());
@@ -187,7 +174,7 @@ impl Tui {
                         }
 
                         KeyCode::Char('l') => {
-                            self.window_lock = self.window_lock.as_ref().map(|l| l.next());
+                            self.window_lock = self.window_lock.next();
                             self.draw_buffer()?.flush()?;
                         }
 
@@ -244,7 +231,16 @@ impl Tui {
 impl UI for Tui {
     fn run(&mut self) -> eyre::Result<()> {
         enable_raw_mode()?;
-        let res = self.do_run();
+
+        self.queue(Clear(ClearType::All))?
+            .queue(cursor::Hide)?
+            .queue(MoveTo(0, 0))?
+            .queue(Print(": "))?
+            .flush()?;
+
+        self.draw_buffer()?;
+
+        let res = self.input_loop();
 
         if res.is_ok() {
             self.queue(Clear(ClearType::All))?
