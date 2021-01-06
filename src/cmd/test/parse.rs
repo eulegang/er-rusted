@@ -102,6 +102,22 @@ mod append {
     }
 
     #[test]
+    fn inline_empty() {
+        assert_parse!(
+            "a ''",
+            Command::Append(Offset::Nil(Point::Current), Some(vec!["".to_string()]))
+        );
+    }
+
+    #[test]
+    fn inline_empty_dquote() {
+        assert_parse!(
+            "a \"\"",
+            Command::Append(Offset::Nil(Point::Current), Some(vec!["".to_string()]))
+        );
+    }
+
+    #[test]
     fn escaped_quote() {
         assert_parse!(
             "a 'foo\\'bar\\nbaz'",

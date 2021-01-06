@@ -290,13 +290,14 @@ impl Command {
 
 fn parse_str_lit(input: &str) -> IResult<&str, Vec<String>> {
     let (input, end) = one_of("\"'")(input)?;
-    let (input, content) = escaped(
+    let (input, content) = opt(escaped(
         is_not(format!("\\{}", end).as_str()),
         '\\',
         one_of(format!("n\\{}", end).as_str()),
-    )(input)?;
+    ))(input)?;
     let (input, _) = tag(end.to_string().as_str())(input)?;
 
+    let content = content.unwrap_or_default();
     let content = content.replace(&format!("\\{}", end), &end.to_string());
     let content = content.replace("\\\\", "\\");
 
