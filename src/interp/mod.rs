@@ -8,6 +8,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{self, ErrorKind};
 
 /// Interprets commands on a buffer
+#[derive(Debug)]
 pub struct Interpreter {
     pub(crate) filelist: Vec<String>,
     pub(crate) filepos: usize,
@@ -15,6 +16,7 @@ pub struct Interpreter {
     pub(crate) env: Env,
 }
 
+#[derive(Debug)]
 pub struct Env {
     pub(crate) cut: Vec<String>,
     pub(crate) filename: Option<String>,

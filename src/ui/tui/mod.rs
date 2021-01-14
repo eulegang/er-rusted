@@ -13,12 +13,15 @@ use lock::WindowLock;
 use mode::Mode;
 use std::io::Stdout;
 
+mod action;
 mod draw;
 mod history;
 mod lock;
 mod mode;
+mod motion;
 
 /// Create a tui similar to vim
+#[derive(Debug)]
 pub struct Tui {
     pub(crate) interp: Interpreter,
     pub(crate) stdout: Stdout,
@@ -26,6 +29,10 @@ pub struct Tui {
     pub(crate) history: History,
     pub(crate) mode: Mode,
     pub(crate) cmd: String,
+    pub(crate) key_buffer: String,
+    pub(crate) cursor: usize,
+    pub(crate) pending_quit: bool,
+    pub(crate) search: Option<motion::Search>,
 }
 
 impl Tui {
@@ -37,6 +44,10 @@ impl Tui {
         let history = History::new();
         let window_lock = WindowLock::Top;
         let mode = Mode::Cmd;
+        let cursor = 0;
+        let key_buffer = String::default();
+        let search = None;
+        let pending_quit = false;
 
         Ok(Tui {
             interp,
@@ -45,12 +56,17 @@ impl Tui {
             history,
             mode,
             cmd,
+            key_buffer,
+            cursor,
+            search,
+            pending_quit,
         })
     }
 
     fn input_loop(&mut self) -> eyre::Result<()> {
         loop {
-            if !self.process(read()?)? {
+            let _ = self.process(read()?);
+            if self.pending_quit {
                 break Ok(());
             }
         }
@@ -64,6 +80,11 @@ impl Tui {
 impl UI for Tui {
     fn run(&mut self) -> eyre::Result<()> {
         enable_raw_mode()?;
+        let hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let _ = disable_raw_mode();
+            hook(info)
+        }));
 
         self.queue(Clear(ClearType::All))?
             .queue(cursor::Hide)?
@@ -89,5 +110,9 @@ impl UI for Tui {
 impl Drop for Tui {
     fn drop(&mut self) {
         let _ = disable_raw_mode();
+
+        if cfg!(debug_assertions) {
+            dbg!(self);
+        }
     }
 }

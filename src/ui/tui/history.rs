@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+#[derive(Debug)]
 pub struct History {
     lines: VecDeque<String>,
     pos: Option<u8>,

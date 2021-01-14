@@ -70,12 +70,17 @@ impl Tui {
 
     pub(crate) fn draw_cmd(&mut self) -> eyre::Result<&mut Self> {
         let cmd = self.cmd.as_str();
+        let keys = self.key_buffer.as_str();
+        let (width, _) = size()?;
+
         self.stdout
             .queue(cursor::SavePosition)?
             .queue(MoveTo(0, 0))?
             .queue(Clear(ClearType::CurrentLine))?
             .queue(Print(": "))?
             .queue(Print(cmd))?
+            .queue(MoveTo(width - keys.len() as u16 - 2, 0))?
+            .queue(Print(keys))?
             .queue(cursor::RestorePosition)?;
 
         Ok(self)
@@ -103,8 +108,9 @@ impl Tui {
         Ok(self)
     }
 
-    pub(crate) fn set_col(&mut self, col: u16) -> eyre::Result<&mut Self> {
-        self.stdout.queue(cursor::MoveTo(col + 2, 0))?;
+    pub(crate) fn draw_cursor(&mut self) -> eyre::Result<&mut Self> {
+        self.stdout
+            .queue(cursor::MoveTo(self.cursor as u16 + 2, 0))?;
 
         Ok(self)
     }
