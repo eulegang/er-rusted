@@ -5,6 +5,7 @@ pub enum Edit {
     Insert(char),
     Backspace,
     CutRest,
+    CutAll,
     CutTil(Option<usize>),
 }
 
@@ -28,6 +29,11 @@ impl Action for Edit {
             Edit::CutRest => {
                 let end = tui.cmd.len();
                 drop(tui.cmd.drain(tui.cursor..end));
+            }
+
+            Edit::CutAll => {
+                tui.cmd.clear();
+                tui.cursor = 0;
             }
 
             Edit::CutTil(times) => {

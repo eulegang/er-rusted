@@ -7,8 +7,7 @@ pub(crate) fn process_cmd(event: Event, tui: &mut Tui) -> eyre::Result<bool> {
             if key.modifiers.contains(KeyModifiers::CONTROL) {
                 match key.code {
                     KeyCode::Char('c') => {
-                        tui.cmd.clear();
-                        tui.draw_cmd()?;
+                        Edit::CutAll.invoke(tui)?;
                     }
 
                     KeyCode::Char('d') => {
