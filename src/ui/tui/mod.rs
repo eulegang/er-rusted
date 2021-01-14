@@ -73,7 +73,11 @@ impl Tui {
     }
 
     fn process(&mut self, event: Event) -> eyre::Result<bool> {
-        self.mode.clone().process(event, self)
+        let mode = self.mode.clone();
+        match event {
+            Event::Key(key) => mode.process_key(key, self),
+            _ => Ok(true),
+        }
     }
 }
 

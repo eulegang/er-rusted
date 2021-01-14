@@ -4,12 +4,7 @@ use crate::ui::tui::motion::*;
 use crossterm::event::KeyEvent;
 use std::cmp::{max, min};
 
-pub(crate) fn process_line_edit(event: Event, tui: &mut Tui) -> eyre::Result<bool> {
-    let key = match event {
-        Event::Key(key) => key,
-        _ => return Ok(true),
-    };
-
+pub(crate) fn process_line_edit(key: KeyEvent, tui: &mut Tui) -> eyre::Result<bool> {
     let digits: Option<usize> = tui.key_buffer.parse().ok();
 
     let op = tui.key_buffer.chars().last();

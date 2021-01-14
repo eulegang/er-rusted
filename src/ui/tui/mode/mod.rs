@@ -1,5 +1,5 @@
 use super::Tui;
-use crossterm::event::{Event, KeyCode, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::io::Write;
 
 mod cmd;
@@ -14,11 +14,11 @@ pub enum Mode {
 }
 
 impl Mode {
-    pub(crate) fn process(&self, event: Event, tui: &mut Tui) -> eyre::Result<bool> {
+    pub(crate) fn process_key(&self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<bool> {
         match self {
-            Mode::Cmd => cmd::process_cmd(event, tui),
-            Mode::LineEdit => line_edit::process_line_edit(event, tui),
-            Mode::LineInsert => line_insert::process_line_insert(event, tui),
+            Mode::Cmd => cmd::process_cmd(key, tui),
+            Mode::LineEdit => line_edit::process_line_edit(key, tui),
+            Mode::LineInsert => line_insert::process_line_insert(key, tui),
         }
     }
 
