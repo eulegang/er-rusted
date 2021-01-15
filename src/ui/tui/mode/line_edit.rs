@@ -16,13 +16,12 @@ pub(crate) fn process_line_edit(key: KeyEvent, tui: &mut Tui) -> eyre::Result<()
         _ => return Ok(()),
     };
 
-    let op = buf.chars().last();
     let key_len = tui.key_buffer.len();
 
     let change = buf.contains('c');
     let del = buf.contains('d') || change;
 
-    if let Some(motion) = map_motion(cur, op, tui) {
+    if let Some(motion) = map_motion(cur, buf, tui) {
         let shift = Shift { motion, mag };
         if let SealedMotion::Search(search) = motion {
             tui.search = Some(if cur == ',' { search.reverse() } else { search })
@@ -34,7 +33,7 @@ pub(crate) fn process_line_edit(key: KeyEvent, tui: &mut Tui) -> eyre::Result<()
             shift.invoke(tui)?;
         }
     } else {
-        if let Some(action) = process_edit_bare(cur, op, mag) {
+        if let Some(action) = process_edit_bare(cur, buf, mag) {
             action.invoke(tui)?;
         }
     }
@@ -50,36 +49,35 @@ pub(crate) fn process_line_edit(key: KeyEvent, tui: &mut Tui) -> eyre::Result<()
     Ok(())
 }
 
-fn map_motion(ch: char, op: Option<char>, tui: &Tui) -> Option<SealedMotion> {
-    match (ch, op) {
-        (_, Some('f')) => Some(Search::ForwardFind(ch).into()),
-        (_, Some('F')) => Some(Search::BackwardFind(ch).into()),
-        (_, Some('t')) => Some(Search::ForwardTo(ch).into()),
-        (_, Some('T')) => Some(Search::BackwardTo(ch).into()),
+fn map_motion(ch: char, ctx: &str, tui: &Tui) -> Option<SealedMotion> {
+    match ctx.chars().last() {
+        Some('f') => return Some(Search::ForwardFind(ch).into()),
+        Some('F') => return Some(Search::BackwardFind(ch).into()),
+        Some('t') => return Some(Search::ForwardTo(ch).into()),
+        Some('T') => return Some(Search::BackwardTo(ch).into()),
+        _ => (),
+    }
 
-        ('w', _) => Some(CClass::ForwardWord.into()),
-        ('b', _) => Some(CClass::BackwardWord.into()),
-        ('W', _) => Some(CClass::ForwardBlank.into()),
-        ('B', _) => Some(CClass::BackwardBlank.into()),
+    match ch {
+        'w' => Some(CClass::ForwardWord.into()),
+        'b' => Some(CClass::BackwardWord.into()),
+        'W' => Some(CClass::ForwardBlank.into()),
+        'B' => Some(CClass::BackwardBlank.into()),
 
-        ('0', _) => Some(Absolute::First.into()),
-        ('$', _) => Some(Absolute::Last.into()),
-        ('h', _) => Some(Relative::Left.into()),
-        ('l', _) => Some(Relative::Right.into()),
+        '0' => Some(Absolute::First.into()),
+        '$' => Some(Absolute::Last.into()),
+        'h' => Some(Relative::Left.into()),
+        'l' => Some(Relative::Right.into()),
 
-        (';', _) => tui.search.map(|s| s.into()),
-        (',', _) => tui.search.map(|s| s.reverse().into()),
+        ';' => tui.search.map(|s| s.into()),
+        ',' => tui.search.map(|s| s.reverse().into()),
 
         _ => return None,
     }
 }
 
-fn process_edit_bare(
-    cur: char,
-    op: Option<char>,
-    mag: usize,
-) -> Option<SealedAction<SealedMotion>> {
-    let action: SealedAction<SealedMotion> = match (cur, op) {
+fn process_edit_bare(cur: char, ctx: &str, mag: usize) -> Option<SealedAction<SealedMotion>> {
+    let action: SealedAction<SealedMotion> = match (cur, ctx) {
         ('k', _) => History::Past.into(),
         ('j', _) => History::Recent.into(),
         ('i', _) => Transition::Insert.into(),
@@ -88,7 +86,7 @@ fn process_edit_bare(
         ('A', _) => Transition::HardAppend.into(),
         ('D', _) => Edit::CutRest.into(),
         ('x', _) => Edit::CutTil(Some(mag)).into(),
-        ('d', Some('d')) => Edit::CutAll.into(),
+        ('d', "d") => Edit::CutAll.into(),
         (ch, _) if ch.is_digit(10) || "FfTtdc".contains(ch) => KeyBuffer::Push(ch).into(),
 
         _ => return None,
