@@ -18,6 +18,8 @@ impl Action for Run {
         }
 
         if let Ok(cmd) = Command::from_str(&tui.cmd) {
+            tui.cmd.clear();
+
             if cmd.needs_text() {
                 tui.draw_error()?.flush()?;
                 return Ok(());
