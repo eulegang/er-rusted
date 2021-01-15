@@ -10,12 +10,12 @@ pub use cclass::CClass;
 pub use rel::Relative;
 pub use search::Search;
 
-#[enum_dispatch(SealedMotion)]
+#[enum_dispatch]
 pub trait Motion {
     fn move_cursor(&self, buffer: &str, cursor: usize) -> Option<usize>;
 }
 
-#[enum_dispatch]
+#[enum_dispatch(Motion)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum SealedMotion {
     Absolute,

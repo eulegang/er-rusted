@@ -34,7 +34,9 @@ pub(crate) fn process_line_edit(key: KeyEvent, tui: &mut Tui) -> eyre::Result<()
             shift.invoke(tui)?;
         }
     } else {
-        process_edit_bare(cur, op, mag, tui)?;
+        if let Some(action) = process_edit_bare(cur, op, mag) {
+            action.invoke(tui)?;
+        }
     }
 
     if tui.key_buffer.len() == key_len {
@@ -72,26 +74,27 @@ fn map_motion(ch: char, op: Option<char>, tui: &Tui) -> Option<SealedMotion> {
     }
 }
 
-fn process_edit_bare(cur: char, op: Option<char>, mag: usize, tui: &mut Tui) -> eyre::Result<()> {
-    match (cur, op) {
-        ('k', _) => History::Past.invoke(tui)?,
-        ('j', _) => History::Recent.invoke(tui)?,
-        ('i', _) => Transition::Insert.invoke(tui)?,
-        ('I', _) => Transition::HardInsert.invoke(tui)?,
-        ('a', _) => Transition::Append.invoke(tui)?,
-        ('A', _) => Transition::HardAppend.invoke(tui)?,
-        ('D', _) => Edit::CutRest.invoke(tui)?,
-        ('x', _) => Edit::CutTil(Some(mag)).invoke(tui)?,
-        ('d', Some('d')) => Edit::CutAll.invoke(tui)?,
+fn process_edit_bare(
+    cur: char,
+    op: Option<char>,
+    mag: usize,
+) -> Option<SealedAction<SealedMotion>> {
+    let action: SealedAction<SealedMotion> = match (cur, op) {
+        ('k', _) => History::Past.into(),
+        ('j', _) => History::Recent.into(),
+        ('i', _) => Transition::Insert.into(),
+        ('I', _) => Transition::HardInsert.into(),
+        ('a', _) => Transition::Append.into(),
+        ('A', _) => Transition::HardAppend.into(),
+        ('D', _) => Edit::CutRest.into(),
+        ('x', _) => Edit::CutTil(Some(mag)).into(),
+        ('d', Some('d')) => Edit::CutAll.into(),
+        (ch, _) if ch.is_digit(10) || "FfTtdc".contains(ch) => KeyBuffer::Push(ch).into(),
 
-        (ch, _) if ch.is_digit(10) || "FfTtdc".contains(ch) => {
-            KeyBuffer::Push(ch).invoke(tui)?;
-        }
+        _ => return None,
+    };
 
-        _ => (),
-    }
-
-    Ok(())
+    Some(action)
 }
 
 fn parts(key_buffer: &str) -> (usize, &str) {
