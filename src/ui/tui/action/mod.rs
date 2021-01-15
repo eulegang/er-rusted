@@ -13,7 +13,7 @@ pub use history::History;
 pub use mode::SetMode;
 pub use run::{Reset, Run};
 pub use scroll::Scroll;
-pub use shift::Shift;
+pub use shift::{CutShift, Shift};
 pub use transition::Transition;
 
 pub trait Action {
