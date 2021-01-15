@@ -14,6 +14,7 @@ impl Action for Run {
         tui.history.reset();
         tui.key_buffer.clear();
         tui.cursor = 0;
+        tui.history.append(tui.cmd.to_string());
 
         if let Ok(cmd) = Command::from_str(&tui.cmd) {
             let selected = take(&mut tui.cmd);
@@ -29,7 +30,6 @@ impl Action for Run {
                 }
 
                 Ok(true) => {
-                    tui.history.append(selected);
                     tui.draw_cmd()?.draw_buffer()?;
                 }
 
