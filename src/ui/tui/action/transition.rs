@@ -17,7 +17,7 @@ impl Action for Transition {
             Transition::HardAppend => tui.cursor = tui.cmd.len() - 1,
         }
 
-        tui.mode = Mode::LineInsert;
+        tui.mode = Mode::Cmd;
 
         tui.draw_cursor()?;
 

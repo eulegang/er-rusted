@@ -2,267 +2,118 @@ use super::*;
 use crate::ui::tui::action::*;
 use crate::ui::tui::motion::*;
 use crossterm::event::KeyEvent;
-use std::cmp::{max, min};
 
-pub(crate) fn process_line_edit(key: KeyEvent, tui: &mut Tui) -> eyre::Result<bool> {
-    let digits: Option<usize> = tui.key_buffer.parse().ok();
-
-    let op = tui.key_buffer.chars().last();
-
-    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
-        tui.mode = Mode::Cmd;
-        tui.hide_cursor()?;
-        tui.history.reset();
-        tui.cmd.clear();
-        tui.key_buffer.clear();
-
-        tui.draw_cmd()?;
-        return Ok(true);
+pub(crate) fn process_line_edit(key: KeyEvent, tui: &mut Tui) -> eyre::Result<()> {
+    if key.code == KeyCode::Enter {
+        Run.invoke(tui)?;
+        return Ok(());
     }
 
-    let result = if tui.key_buffer.contains("d") || tui.key_buffer.contains("c") {
-        let root = tui.cursor;
-        let res = match op {
-            Some(ch) if "FfTt".contains(ch) => process_search(key, ch, digits, tui),
-            _ => process_basic_motion(key, digits, tui),
-        };
+    let (mag, buf) = parts(&tui.key_buffer);
 
-        if root != tui.cursor {
-            let (low, high) = (min(root, tui.cursor), max(root, tui.cursor));
+    let cur = match key.code {
+        KeyCode::Char(ch) => ch,
+        _ => return Ok(()),
+    };
 
-            tui.cmd.drain(low..=high);
-            tui.cursor = low;
+    let op = buf.chars().last();
+    let key_len = tui.key_buffer.len();
 
-            tui.key_buffer.clear();
-            tui.draw_cmd()?;
-            tui.draw_cursor()?;
+    let change = buf.contains('c');
+    let del = buf.contains('d') || change;
+
+    if let Some(motion) = map_motion(cur, op, tui) {
+        let shift = Shift { motion, mag };
+        if let SealedMotion::Search(search) = motion {
+            tui.search = Some(if cur == ',' { search.reverse() } else { search })
         }
 
-        res
+        if del {
+            shift.to_cut().invoke(tui)?;
+        } else {
+            shift.invoke(tui)?;
+        }
     } else {
-        match op {
-            Some(ch) if "FfTt".contains(ch) => process_search(key, ch, digits, tui),
-            _ => process_bare(key, digits, tui),
-        }
-    };
-
-    if !result? {
-        return Ok(false);
+        process_edit_bare(cur, op, mag, tui)?;
     }
 
-    tui.stdout.flush()?;
-    Ok(true)
+    if tui.key_buffer.len() == key_len {
+        KeyBuffer::Clear.invoke(tui)?;
+    }
+
+    if change {
+        SetMode(Mode::LineInsert).invoke(tui)?;
+    }
+
+    Ok(())
 }
 
-fn process_bare(key: KeyEvent, digits: Option<usize>, tui: &mut Tui) -> eyre::Result<bool> {
-    let mut appended = false;
-    match key.code {
-        KeyCode::Enter => {
-            Run.invoke(tui)?;
-        }
+fn map_motion(ch: char, op: Option<char>, tui: &Tui) -> Option<SealedMotion> {
+    match (ch, op) {
+        (_, Some('f')) => Some(Search::ForwardFind(ch).into()),
+        (_, Some('F')) => Some(Search::BackwardFind(ch).into()),
+        (_, Some('t')) => Some(Search::ForwardTo(ch).into()),
+        (_, Some('T')) => Some(Search::BackwardTo(ch).into()),
 
-        KeyCode::Char('k') => {
-            History::Past.invoke(tui)?;
-        }
+        ('w', _) => Some(CClass::ForwardWord.into()),
+        ('b', _) => Some(CClass::BackwardWord.into()),
+        ('W', _) => Some(CClass::ForwardBlank.into()),
+        ('B', _) => Some(CClass::BackwardBlank.into()),
 
-        KeyCode::Char('j') => {
-            History::Recent.invoke(tui)?;
-        }
+        ('0', _) => Some(Absolute::First.into()),
+        ('$', _) => Some(Absolute::Last.into()),
+        ('h', _) => Some(Relative::Left.into()),
+        ('l', _) => Some(Relative::Right.into()),
 
-        KeyCode::Char('h') => {
-            let mag = digits.unwrap_or(1);
-            let motion = Relative::Left;
-            Shift { mag, motion }.invoke(tui)?;
-        }
+        (';', _) => tui.search.map(|s| s.into()),
+        (',', _) => tui.search.map(|s| s.reverse().into()),
 
-        KeyCode::Char('l') => {
-            let mag = digits.unwrap_or(1);
-            let motion = Relative::Right;
-            Shift { mag, motion }.invoke(tui)?;
-        }
+        _ => return None,
+    }
+}
 
-        KeyCode::Char('i') => {
-            Transition::Insert.invoke(tui)?;
-        }
+fn process_edit_bare(cur: char, op: Option<char>, mag: usize, tui: &mut Tui) -> eyre::Result<()> {
+    match (cur, op) {
+        ('k', _) => History::Past.invoke(tui)?,
+        ('j', _) => History::Recent.invoke(tui)?,
+        ('i', _) => Transition::Insert.invoke(tui)?,
+        ('I', _) => Transition::HardInsert.invoke(tui)?,
+        ('a', _) => Transition::Append.invoke(tui)?,
+        ('A', _) => Transition::HardAppend.invoke(tui)?,
+        ('D', _) => Edit::CutRest.invoke(tui)?,
+        ('x', _) => Edit::CutTil(Some(mag)).invoke(tui)?,
+        ('d', Some('d')) => Edit::CutAll.invoke(tui)?,
 
-        KeyCode::Char('I') => {
-            Transition::HardInsert.invoke(tui)?;
-        }
-
-        KeyCode::Char('a') => {
-            Transition::Append.invoke(tui)?;
-        }
-
-        KeyCode::Char('A') => {
-            Transition::HardAppend.invoke(tui)?;
-        }
-
-        KeyCode::Char('D') => {
-            Edit::CutRest.invoke(tui)?;
-        }
-
-        KeyCode::Char('x') => {
-            Edit::CutTil(digits).invoke(tui)?;
-        }
-
-        KeyCode::Char('w') => {
-            let mag = digits.unwrap_or(1);
-            let motion = CClass::ForwardWord;
-            Shift { mag, motion }.invoke(tui)?;
-        }
-
-        KeyCode::Char('b') => {
-            let mag = digits.unwrap_or(1);
-            let motion = CClass::BackwardWord;
-            Shift { mag, motion }.invoke(tui)?;
-        }
-
-        KeyCode::Char('W') => {
-            let mag = digits.unwrap_or(1);
-            let motion = CClass::ForwardBlank;
-            Shift { mag, motion }.invoke(tui)?;
-        }
-
-        KeyCode::Char('B') => {
-            let mag = digits.unwrap_or(1);
-            let motion = CClass::BackwardBlank;
-            Shift { mag, motion }.invoke(tui)?;
-        }
-
-        KeyCode::Char(';') => {
-            if let Some(motion) = tui.search {
-                let mag = digits.unwrap_or(1);
-                Shift { mag, motion }.invoke(tui)?;
-            }
-        }
-
-        KeyCode::Char(',') => {
-            if let Some(motion) = tui.search {
-                let motion = motion.reverse();
-                let mag = digits.unwrap_or(1);
-                Shift { mag, motion }.invoke(tui)?;
-            }
-        }
-
-        KeyCode::Char('0') if tui.key_buffer.is_empty() => {
-            let mag = 1;
-            let motion = Absolute::First;
-            Shift { mag, motion }.invoke(tui)?;
-        }
-
-        KeyCode::Char('$') => {
-            let mag = 1;
-            let motion = Absolute::Last;
-            Shift { mag, motion }.invoke(tui)?;
-        }
-
-        KeyCode::Char(digit) if digit.is_digit(10) => {
-            tui.key_buffer.push(digit);
-            tui.draw_cmd()?;
-            appended = true
-        }
-
-        KeyCode::Char(ch) if "FfTtdc".contains(ch) => {
-            tui.key_buffer.push(ch);
-            tui.draw_cmd()?;
-            appended = true
+        (ch, _) if ch.is_digit(10) || "FfTtdc".contains(ch) => {
+            KeyBuffer::Push(ch).invoke(tui)?;
         }
 
         _ => (),
     }
 
-    if !appended {
-        tui.key_buffer.clear()
-    }
-
-    Ok(true)
+    Ok(())
 }
 
-fn process_search(
-    key: KeyEvent,
-    op: char,
-    digits: Option<usize>,
-    tui: &mut Tui,
-) -> eyre::Result<bool> {
-    let key = match key.code {
-        KeyCode::Char(key) => key,
-        _ => return Ok(true),
-    };
-
-    match op {
-        'f' => {
-            let motion = Search::ForwardFind(key);
-            let mag = digits.unwrap_or(1);
-            Shift { mag, motion }.invoke(tui)?;
-
-            tui.search = Some(motion);
-            tui.draw_cursor()?;
+fn parts(key_buffer: &str) -> (usize, &str) {
+    let mut i = 0;
+    for ch in key_buffer.chars() {
+        if !ch.is_digit(10) {
+            break;
         }
-
-        'F' => {
-            let motion = Search::BackwardFind(key);
-            let mag = digits.unwrap_or(1);
-            Shift { mag, motion }.invoke(tui)?;
-
-            tui.search = Some(motion);
-            tui.draw_cursor()?;
-        }
-
-        't' => {
-            let motion = Search::ForwardTo(key);
-            let mag = digits.unwrap_or(1);
-            Shift { mag, motion }.invoke(tui)?;
-
-            tui.search = Some(motion);
-            tui.draw_cursor()?;
-        }
-
-        'T' => {
-            let motion = Search::BackwardTo(key);
-            let mag = digits.unwrap_or(1);
-            Shift { mag, motion }.invoke(tui)?;
-
-            tui.search = Some(motion);
-            tui.draw_cursor()?;
-        }
-
-        _ => unreachable!(),
+        i += 1;
     }
 
-    tui.key_buffer.clear();
-    tui.draw_cmd()?;
-
-    Ok(true)
+    (key_buffer[..i].parse().unwrap_or(1), &key_buffer[i..])
 }
 
-fn process_basic_motion(key: KeyEvent, digits: Option<usize>, tui: &mut Tui) -> eyre::Result<bool> {
-    match key.code {
-        KeyCode::Char('w') => {
-            let mag = digits.unwrap_or(1);
-            let motion = CClass::ForwardWord;
-            Shift { mag, motion }.invoke(tui)?;
-        }
+#[cfg(test)]
+mod test {
+    use super::*;
 
-        KeyCode::Char('b') => {
-            let mag = digits.unwrap_or(1);
-            let motion = CClass::BackwardWord;
-            Shift { mag, motion }.invoke(tui)?;
-        }
-
-        KeyCode::Char('W') => {
-            let mag = digits.unwrap_or(1);
-            let motion = CClass::ForwardBlank;
-            Shift { mag, motion }.invoke(tui)?;
-        }
-
-        KeyCode::Char('B') => {
-            let mag = digits.unwrap_or(1);
-            let motion = CClass::BackwardBlank;
-            Shift { mag, motion }.invoke(tui)?;
-        }
-
-        _ => (),
+    #[test]
+    fn basic() {
+        assert_eq!(parts("123df'"), (123, "df'"));
+        assert_eq!(parts("df'"), (1, "df'"));
+        assert_eq!(parts("2"), (2, ""));
     }
-
-    Ok(true)
 }

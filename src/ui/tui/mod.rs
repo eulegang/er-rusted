@@ -65,18 +65,18 @@ impl Tui {
 
     fn input_loop(&mut self) -> eyre::Result<()> {
         loop {
-            let _ = self.process(read()?);
+            self.process(read()?)?;
             if self.pending_quit {
                 break Ok(());
             }
         }
     }
 
-    fn process(&mut self, event: Event) -> eyre::Result<bool> {
+    fn process(&mut self, event: Event) -> eyre::Result<()> {
         let mode = self.mode.clone();
         match event {
             Event::Key(key) => mode.process_key(key, self),
-            _ => Ok(true),
+            _ => Ok(()),
         }
     }
 }

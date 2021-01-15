@@ -1,5 +1,6 @@
 use super::Motion;
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Absolute {
     First,
     Last,
