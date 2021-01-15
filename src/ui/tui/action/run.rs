@@ -1,7 +1,6 @@
 use super::Action;
 use crate::ui::tui::{mode::Mode, Tui};
 use crate::Command;
-use std::mem::take;
 use std::str::FromStr;
 
 pub struct Run;
@@ -14,11 +13,11 @@ impl Action for Run {
         tui.history.reset();
         tui.key_buffer.clear();
         tui.cursor = 0;
-        tui.history.append(tui.cmd.to_string());
+        if !tui.cmd.trim().is_empty() {
+            tui.history.append(tui.cmd.to_string());
+        }
 
         if let Ok(cmd) = Command::from_str(&tui.cmd) {
-            let selected = take(&mut tui.cmd);
-
             if cmd.needs_text() {
                 tui.draw_error()?.flush()?;
                 return Ok(());
