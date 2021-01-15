@@ -5,6 +5,7 @@ use std::mem::take;
 use std::str::FromStr;
 
 pub struct Run;
+pub struct Reset;
 
 impl Action for Run {
     fn invoke(&self, tui: &mut Tui) -> eyre::Result<()> {
@@ -42,5 +43,19 @@ impl Action for Run {
         }
 
         Ok(())
+    }
+}
+
+impl Action for Reset {
+    fn invoke(&self, tui: &mut Tui) -> eyre::Result<()> {
+        tui.mode = Mode::Cmd;
+        tui.hide_cursor()?;
+        tui.history.reset();
+        tui.cmd.clear();
+        tui.key_buffer.clear();
+        tui.cursor = 0;
+
+        tui.draw_cmd()?.draw_cursor()?;
+        return Ok(());
     }
 }
