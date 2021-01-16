@@ -96,6 +96,36 @@ impl Tui {
         Ok(self)
     }
 
+    pub(crate) fn draw_scratch(&mut self) -> eyre::Result<&mut Self> {
+        let (_, height) = size()?;
+        let height = height as usize;
+        let lines = self.interp.scratch.buffer_lines(height);
+
+        let blank = height - lines.len();
+
+        self.stdout
+            .queue(cursor::SavePosition)?
+            .queue(MoveTo(0, 0))?;
+
+        for _ in 0..blank {
+            self.stdout
+                .queue(Clear(ClearType::CurrentLine))?
+                .queue(Print(style("~").with(Color::Blue)))?
+                .queue(MoveToNextLine(1))?;
+        }
+
+        for line in lines {
+            self.stdout
+                .queue(Clear(ClearType::CurrentLine))?
+                .queue(Print(line))?
+                .queue(MoveToNextLine(1))?;
+        }
+
+        self.stdout.queue(cursor::RestorePosition)?;
+
+        Ok(self)
+    }
+
     pub(crate) fn show_cursor(&mut self) -> eyre::Result<&mut Self> {
         self.stdout.queue(cursor::Show)?;
 

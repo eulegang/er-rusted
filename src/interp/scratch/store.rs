@@ -32,3 +32,28 @@ impl ScratchPad for StoreScratchPad {
         self.lines.push_front(line.to_string());
     }
 }
+
+impl StoreScratchPad {
+    pub fn buffer_lines(&mut self, cap: usize) -> Vec<&str> {
+        let mut buf = Vec::with_capacity(cap);
+
+        for i in self.offset..(self.offset + cap) {
+            if let Some(elem) = self.lines.get(i) {
+                buf.push(elem.as_str())
+            } else {
+                break;
+            }
+        }
+
+        buf
+    }
+
+    pub fn is_stale(&self) -> bool {
+        self.stale
+    }
+
+    pub fn refresh(&mut self) {
+        self.stale = false;
+        self.offset = 0;
+    }
+}
