@@ -34,4 +34,14 @@ impl WindowLock {
             WindowLock::Bottom => WindowLock::Top,
         }
     }
+
+    pub(crate) fn prev(&self) -> WindowLock {
+        match self {
+            WindowLock::Top => WindowLock::Bottom,
+            WindowLock::Perc20 => WindowLock::Top,
+            WindowLock::Middle => WindowLock::Perc20,
+            WindowLock::Perc80 => WindowLock::Middle,
+            WindowLock::Bottom => WindowLock::Perc80,
+        }
+    }
 }

@@ -8,7 +8,8 @@ pub(crate) fn process_ctl(key: KeyEvent, tui: &mut Tui) -> eyre::Result<()> {
         KeyCode::Char('u') => Scroll::HalfUp.invoke(tui)?,
         KeyCode::Char('f') => Scroll::FullDown.invoke(tui)?,
         KeyCode::Char('b') => Scroll::FullUp.invoke(tui)?,
-        KeyCode::Char('l') => RotateWindowLock.invoke(tui)?,
+        KeyCode::Char('l') => RotateWindowLock::Down.invoke(tui)?,
+        KeyCode::Char('o') => RotateWindowLock::Up.invoke(tui)?,
         _ => (),
     };
 
