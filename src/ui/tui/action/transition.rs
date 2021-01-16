@@ -15,7 +15,7 @@ impl Action for Transition {
             Transition::Insert => {}
             Transition::Append => tui.cursor = min(tui.cmd.len(), tui.cursor + 1),
             Transition::HardInsert => tui.cursor = 0,
-            Transition::HardAppend => tui.cursor = tui.cmd.len().checked_sub(1).unwrap_or(0),
+            Transition::HardAppend => tui.cursor = tui.cmd.len(),
         }
 
         tui.mode = Mode::Cmd;
