@@ -87,7 +87,8 @@ fn process_edit_bare(cur: char, ctx: &str, mag: usize) -> Option<SealedAction<Se
         ('D', _) => Edit::CutRest.into(),
         ('x', _) => Edit::CutTil(Some(mag)).into(),
         ('d', "d") => Edit::CutAll.into(),
-        (ch, _) if ch.is_digit(10) || "FfTtdc".contains(ch) => KeyBuffer::Push(ch).into(),
+        (ch, "r") => Edit::Replace(ch).into(),
+        (ch, _) if ch.is_digit(10) || "FfTtdcr".contains(ch) => KeyBuffer::Push(ch).into(),
 
         _ => return None,
     };

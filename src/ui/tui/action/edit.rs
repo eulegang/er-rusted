@@ -3,6 +3,7 @@ use crate::ui::tui::Tui;
 
 pub enum Edit {
     Insert(char),
+    Replace(char),
     Backspace,
     CutRest,
     CutAll,
@@ -15,6 +16,11 @@ impl Action for Edit {
             Edit::Insert(ch) => {
                 tui.cmd.insert(tui.cursor, *ch);
                 tui.cursor += 1
+            }
+
+            Edit::Replace(ch) => {
+                tui.cmd.remove(tui.cursor);
+                tui.cmd.insert(tui.cursor, *ch);
             }
 
             Edit::Backspace => {
