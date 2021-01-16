@@ -1,3 +1,4 @@
+use super::mode::SetMode;
 use super::Action;
 use crate::ui::tui::{mode::Mode, Tui};
 use std::cmp::min;
@@ -18,7 +19,7 @@ impl Action for Transition {
             Transition::HardAppend => tui.cursor = tui.cmd.len(),
         }
 
-        tui.mode = Mode::Cmd;
+        SetMode(Mode::LineInsert).invoke(tui)?;
 
         tui.draw_cursor()?;
 
