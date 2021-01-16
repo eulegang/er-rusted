@@ -1,5 +1,5 @@
 use super::*;
-use crate::interp::Interpreter;
+use crate::interp::{scratch::StdoutScratchPad, Interpreter};
 
 macro_rules! assert_content {
     ($buffer: expr, $content: literal) => {{
@@ -23,7 +23,9 @@ barfoo
     fn delete() {
         let cmd = Command::from_str("g/foo/d").expect("should parse");
 
-        let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
+        let mut interp =
+            Interpreter::from_reader::<StdoutScratchPad, &[u8]>(CONTENT.trim().as_bytes())
+                .expect("should read");
 
         assert_eq!(Ok(true), interp.exec(&cmd));
 
@@ -34,7 +36,9 @@ barfoo
     fn transfer() {
         let cmd = Command::from_str("g/foo/t$").expect("should parse");
 
-        let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
+        let mut interp =
+            Interpreter::from_reader::<StdoutScratchPad, &[u8]>(CONTENT.trim().as_bytes())
+                .expect("should read");
 
         assert_eq!(Ok(true), interp.exec(&cmd));
 
@@ -45,7 +49,9 @@ barfoo
     fn move_last() {
         let cmd = Command::from_str("g/foo/m$").expect("should parse");
 
-        let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
+        let mut interp =
+            Interpreter::from_reader::<StdoutScratchPad, &[u8]>(CONTENT.trim().as_bytes())
+                .expect("should read");
 
         assert_eq!(Ok(true), interp.exec(&cmd));
         assert_content!(interp.buffer, "bar\nfoobar\nbarfoo\n");
@@ -55,7 +61,9 @@ barfoo
     fn move_first() {
         let cmd = Command::from_str("g/foo/m0").expect("should parse");
 
-        let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
+        let mut interp =
+            Interpreter::from_reader::<StdoutScratchPad, &[u8]>(CONTENT.trim().as_bytes())
+                .expect("should read");
 
         assert_eq!(Ok(true), interp.exec(&cmd));
 
@@ -75,7 +83,9 @@ fn bar() -> usize {
     fn rearrange() {
         let cmd = Command::from_str("g/bar/.,/\\}/m0").expect("should parse");
 
-        let mut interp = Interpreter::from_reader(CODE.trim().as_bytes()).expect("should read");
+        let mut interp =
+            Interpreter::from_reader::<StdoutScratchPad, &[u8]>(CODE.trim().as_bytes())
+                .expect("should read");
 
         assert_eq!(Ok(true), interp.exec(&cmd));
 
@@ -99,7 +109,9 @@ barfoo
     fn delete() {
         let cmd = Command::from_str("v/foo/d").expect("should parse");
 
-        let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
+        let mut interp =
+            Interpreter::from_reader::<StdoutScratchPad, &[u8]>(CONTENT.trim().as_bytes())
+                .expect("should read");
 
         assert_eq!(Ok(true), interp.exec(&cmd));
 
@@ -121,7 +133,9 @@ barfoo
     fn first() {
         let cmd = Command::from_str("/needle/m0").expect("should parse");
 
-        let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
+        let mut interp =
+            Interpreter::from_reader::<StdoutScratchPad, &[u8]>(CONTENT.trim().as_bytes())
+                .expect("should read");
 
         assert_eq!(Ok(true), interp.exec(&cmd));
 
@@ -132,7 +146,9 @@ barfoo
     fn last() {
         let cmd = Command::from_str("/needle/m$").expect("should parse");
 
-        let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
+        let mut interp =
+            Interpreter::from_reader::<StdoutScratchPad, &[u8]>(CONTENT.trim().as_bytes())
+                .expect("should read");
 
         assert_eq!(Ok(true), interp.exec(&cmd));
 
@@ -154,7 +170,9 @@ barfoo
     fn basic() {
         let cmd = Command::from_str("1,3j").expect("should parse");
 
-        let mut interp = Interpreter::from_reader(CONTENT.trim().as_bytes()).expect("should read");
+        let mut interp =
+            Interpreter::from_reader::<StdoutScratchPad, &[u8]>(CONTENT.trim().as_bytes())
+                .expect("should read");
 
         assert_eq!(Ok(true), interp.exec(&cmd));
 

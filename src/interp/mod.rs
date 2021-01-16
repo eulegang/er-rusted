@@ -4,16 +4,20 @@ use crate::{
     Buffer,
 };
 
+use scratch::{ScratchPad, StdoutScratchPad};
 use std::fs::{File, OpenOptions};
 use std::io::{self, ErrorKind};
 
+pub(crate) mod scratch;
+
 /// Interprets commands on a buffer
 #[derive(Debug)]
-pub struct Interpreter {
+pub struct Interpreter<S: ScratchPad = StdoutScratchPad> {
     pub(crate) filelist: Vec<String>,
     pub(crate) filepos: usize,
     pub(crate) buffer: Buffer,
     pub(crate) env: Env,
+    pub(crate) scratch: S,
 }
 
 #[derive(Debug)]
@@ -32,8 +36,11 @@ pub struct Env {
 }
 
 impl Interpreter {
-    /// Creates an interpreter with multiple files in it's arglisT
-    pub fn new(files: Vec<String>) -> io::Result<Interpreter> {
+    /// Creates an interpreter with multiple files in it's arglist
+    pub fn new<S>(files: Vec<String>) -> io::Result<Interpreter<S>>
+    where
+        S: ScratchPad,
+    {
         let (filename, buffer) = if let Some(file) = files.get(0) {
             let buffer = match File::open(file) {
                 Ok(f) => Buffer::read(f)?,
@@ -47,6 +54,7 @@ impl Interpreter {
 
         let mut env = Env::default();
         env.filename = filename;
+        let scratch = S::default();
 
         let filelist = files;
         let filepos = 0;
@@ -56,25 +64,33 @@ impl Interpreter {
             filepos,
             buffer,
             env,
+            scratch,
         })
     }
 
     #[cfg(test)]
-    pub(crate) fn from_reader<R: std::io::Read>(r: R) -> io::Result<Interpreter> {
+    pub(crate) fn from_reader<S: ScratchPad, R: std::io::Read>(r: R) -> io::Result<Interpreter<S>> {
         let buffer = Buffer::read(r)?;
         let env = Env::default();
 
         let filelist = vec![];
         let filepos = 0;
+        let scratch = S::default();
 
         Ok(Interpreter {
             filelist,
             filepos,
             buffer,
             env,
+            scratch,
         })
     }
+}
 
+impl<S> Interpreter<S>
+where
+    S: ScratchPad,
+{
     /// Executes a command on the given buffer
     pub fn exec(&mut self, cmd: &Command) -> Result<bool, ()> {
         let (res, _) = cmd.invoke(self)?;

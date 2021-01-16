@@ -1,4 +1,5 @@
 use super::*;
+use crate::interp::scratch::ScratchPad;
 use crate::interp::Interpreter;
 use crate::syspoint::{Cmd, SysPoint};
 use regex::Captures;
@@ -23,7 +24,10 @@ pub enum MarkMod {
 }
 
 impl Command {
-    pub(crate) fn invoke(&self, interp: &mut Interpreter) -> Result<(bool, MarkMod), ()> {
+    pub(crate) fn invoke<S: ScratchPad>(
+        &self,
+        interp: &mut Interpreter<S>,
+    ) -> Result<(bool, MarkMod), ()> {
         use Command::*;
 
         match self {
@@ -32,7 +36,7 @@ impl Command {
 
                 for line in start..=end {
                     if let Some(l) = interp.buffer.line(line) {
-                        println!("{}", l)
+                        interp.scratch.print(l);
                     }
                 }
 
@@ -46,7 +50,8 @@ impl Command {
 
                 for pos in line..(line + num) {
                     if let Some(l) = interp.buffer.line(pos) {
-                        println!("{:width$} {}", pos, l, width = pad);
+                        let out = format!("{:width$} {}", pos, l, width = pad);
+                        interp.scratch.print(&out);
                         interp.buffer.set_cursor(pos);
                     }
                 }
@@ -257,7 +262,15 @@ impl Command {
                     }
                 };
 
-                if !run_subst(&mut interp.buffer, start, end, &re, &pat, &flags) {
+                if !run_subst(
+                    &mut interp.buffer,
+                    start,
+                    end,
+                    &re,
+                    &pat,
+                    &flags,
+                    &mut interp.scratch,
+                ) {
                     return Err(());
                 }
 
@@ -413,6 +426,7 @@ fn run_subst(
     re: &Re,
     pat: &Pat,
     flags: &SubstFlags,
+    scratch: &mut impl ScratchPad,
 ) -> bool {
     let mut replaced = false;
 
@@ -435,7 +449,7 @@ fn run_subst(
             .to_string();
 
         if flags.print {
-            println!("{}", replaced);
+            scratch.print(&replaced);
         }
 
         buffer.replace_line(i, replaced);

@@ -1,5 +1,8 @@
 use super::UI;
-use crate::{cmd::Command, interp::Interpreter};
+use crate::{
+    cmd::Command,
+    interp::{scratch::StdoutScratchPad, Interpreter},
+};
 use eyre::{bail, WrapErr};
 use std::fs::{copy, read_to_string};
 
@@ -55,7 +58,7 @@ impl Script {
 impl UI for Script {
     fn run(&mut self) -> eyre::Result<()> {
         'files: for file in &self.files {
-            let mut interp = Interpreter::new(vec![file.clone()]).unwrap();
+            let mut interp = Interpreter::new::<StdoutScratchPad>(vec![file.clone()]).unwrap();
 
             if let Some(backup) = &self.backup {
                 if let Err(e) = copy(&file, format!("{}.{}", file, backup)) {

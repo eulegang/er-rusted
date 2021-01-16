@@ -1,5 +1,5 @@
 use super::UI;
-use crate::Interpreter;
+use crate::{interp::scratch::StoreScratchPad, Interpreter};
 use crossterm::{
     cursor::{self, MoveTo},
     event::{read, Event},
@@ -23,7 +23,7 @@ mod motion;
 /// Create a tui similar to vim
 #[derive(Debug)]
 pub struct Tui {
-    pub(crate) interp: Interpreter,
+    pub(crate) interp: Interpreter<StoreScratchPad>,
     pub(crate) stdout: Stdout,
     pub(crate) window_lock: WindowLock,
     pub(crate) history: History,
