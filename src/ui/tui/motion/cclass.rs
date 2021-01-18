@@ -1,4 +1,4 @@
-use super::Motion;
+use super::{Idemp, Motion};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CClass {
@@ -16,6 +16,12 @@ impl Motion for CClass {
             CClass::ForwardBlank => fblank(buffer, cursor),
             CClass::BackwardBlank => bblank(buffer, cursor),
         }
+    }
+}
+
+impl Idemp for CClass {
+    fn is_idempotent(&self) -> bool {
+        false
     }
 }
 

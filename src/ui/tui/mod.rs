@@ -2,7 +2,7 @@ use super::UI;
 use crate::{interp::scratch::StoreScratchPad, Interpreter};
 use crossterm::{
     cursor::{self, MoveTo},
-    event::{read, Event},
+    event::{read, Event, KeyModifiers},
     style::Print,
     terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
     QueueableCommand,
@@ -10,7 +10,7 @@ use crossterm::{
 use eyre::WrapErr;
 use history::History;
 use lock::WindowLock;
-use mode::Mode;
+use mode::{SealedTMode, TMode};
 use std::io::Stdout;
 
 mod action;
@@ -27,12 +27,7 @@ pub struct Tui {
     pub(crate) stdout: Stdout,
     pub(crate) window_lock: WindowLock,
     pub(crate) history: History,
-    pub(crate) mode: Mode,
-    pub(crate) cmd: String,
-    pub(crate) key_buffer: String,
-    pub(crate) cursor: usize,
     pub(crate) pending_quit: bool,
-    pub(crate) search: Option<motion::Search>,
 }
 
 impl Tui {
@@ -40,13 +35,8 @@ impl Tui {
     pub fn new(files: Vec<String>) -> eyre::Result<Self> {
         let interp = Interpreter::new(files).wrap_err("failed to build")?;
         let stdout = std::io::stdout();
-        let cmd = String::new();
         let history = History::new();
         let window_lock = WindowLock::Top;
-        let mode = Mode::Cmd;
-        let cursor = 0;
-        let key_buffer = String::default();
-        let search = None;
         let pending_quit = false;
 
         Ok(Tui {
@@ -54,30 +44,35 @@ impl Tui {
             stdout,
             window_lock,
             history,
-            mode,
-            cmd,
-            key_buffer,
-            cursor,
-            search,
             pending_quit,
         })
     }
 
     fn input_loop(&mut self) -> eyre::Result<()> {
+        let mut tmode = SealedTMode::default();
         loop {
-            self.process(read()?)?;
+            tmode = self.process(tmode, read()?)?;
             if self.pending_quit {
                 break Ok(());
             }
         }
     }
 
-    fn process(&mut self, event: Event) -> eyre::Result<()> {
-        let mode = self.mode.clone();
-        match event {
-            Event::Key(key) => mode.process_key(key, self),
-            _ => Ok(()),
-        }
+    fn process(&mut self, tmode: SealedTMode, event: Event) -> eyre::Result<SealedTMode> {
+        let next = match event {
+            Event::Key(key) => {
+                if !key.modifiers.contains(KeyModifiers::CONTROL) {
+                    tmode.process_key(key, self)
+                } else {
+                    tmode.process_ctl_key(key, self)
+                }
+            }
+            _ => Ok(tmode),
+        };
+
+        self.flush()?;
+
+        next
     }
 }
 

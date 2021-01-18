@@ -1,4 +1,4 @@
-use super::Motion;
+use super::{Idemp, Motion};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Absolute {
@@ -12,5 +12,11 @@ impl Motion for Absolute {
             Absolute::First => Some(0),
             Absolute::Last => Some(buffer.len() - 1),
         }
+    }
+}
+
+impl Idemp for Absolute {
+    fn is_idempotent(&self) -> bool {
+        true
     }
 }

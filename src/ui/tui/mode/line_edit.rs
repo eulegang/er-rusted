@@ -1,121 +1,236 @@
 use super::*;
-use crate::ui::tui::action::*;
+use crate::ui::tui::action::{Action, RotateWindowLock, RunCmd, Scroll};
+use crate::ui::tui::mode::key_seq::*;
 use crate::ui::tui::motion::*;
 use crossterm::event::KeyEvent;
+use std::convert::Infallible;
+use std::mem::take;
+use std::str::FromStr;
 
-pub(crate) fn process_line_edit(key: KeyEvent, tui: &mut Tui) -> eyre::Result<()> {
-    if key.code == KeyCode::Enter {
-        Run.invoke(tui)?;
-        return Ok(());
-    }
-
-    let (mag, buf) = parts(&tui.key_buffer);
-
-    let cur = match key.code {
-        KeyCode::Char(ch) => ch,
-        _ => return Ok(()),
-    };
-
-    let key_len = tui.key_buffer.len();
-
-    let change = buf.contains('c');
-    let del = buf.contains('d') || change;
-
-    if let Some(motion) = map_motion(cur, buf, tui) {
-        let shift = Shift { motion, mag };
-        if let SealedMotion::Search(search) = motion {
-            tui.search = Some(if cur == ',' { search.reverse() } else { search })
-        }
-
-        if del {
-            shift.to_cut().invoke(tui)?;
-        } else {
-            shift.invoke(tui)?;
-        }
-    } else {
-        if let Some(action) = process_edit_bare(cur, buf, mag) {
-            action.invoke(tui)?;
-        }
-    }
-
-    if tui.key_buffer.len() == key_len {
-        KeyBuffer::Clear.invoke(tui)?;
-    }
-
-    if change {
-        SetMode(Mode::LineInsert).invoke(tui)?;
-    }
-
-    Ok(())
+pub struct LineEdit {
+    buffer: String,
+    ctx: String,
+    cursor: usize,
+    search: Option<Search>,
 }
 
-fn map_motion(ch: char, ctx: &str, tui: &Tui) -> Option<SealedMotion> {
-    match ctx.chars().last() {
-        Some('f') => return Some(Search::ForwardFind(ch).into()),
-        Some('F') => return Some(Search::BackwardFind(ch).into()),
-        Some('t') => return Some(Search::ForwardTo(ch).into()),
-        Some('T') => return Some(Search::BackwardTo(ch).into()),
-        _ => (),
-    }
+impl FromStr for LineEdit {
+    type Err = Infallible;
 
-    match ch {
-        'w' => Some(CClass::ForwardWord.into()),
-        'b' => Some(CClass::BackwardWord.into()),
-        'W' => Some(CClass::ForwardBlank.into()),
-        'B' => Some(CClass::BackwardBlank.into()),
-
-        '0' => Some(Absolute::First.into()),
-        '$' => Some(Absolute::Last.into()),
-        'h' => Some(Relative::Left.into()),
-        'l' => Some(Relative::Right.into()),
-
-        ';' => tui.search.map(|s| s.into()),
-        ',' => tui.search.map(|s| s.reverse().into()),
-
-        _ => return None,
+    fn from_str(s: &str) -> Result<LineEdit, Infallible> {
+        Ok(s.to_string().into())
     }
 }
 
-fn process_edit_bare(cur: char, ctx: &str, mag: usize) -> Option<SealedAction<SealedMotion>> {
-    let action: SealedAction<SealedMotion> = match (cur, ctx) {
-        ('k', _) => History::Past.into(),
-        ('j', _) => History::Recent.into(),
-        ('i', _) => Transition::Insert.into(),
-        ('I', _) => Transition::HardInsert.into(),
-        ('a', _) => Transition::Append.into(),
-        ('A', _) => Transition::HardAppend.into(),
-        ('D', _) => Edit::CutRest.into(),
-        ('x', _) => Edit::CutTil(Some(mag)).into(),
-        ('d', "d") => Edit::CutAll.into(),
-        (ch, "r") => Edit::Replace(ch).into(),
-        (ch, _) if ch.is_digit(10) || "FfTtdcr".contains(ch) => KeyBuffer::Push(ch).into(),
+impl From<String> for LineEdit {
+    fn from(s: String) -> LineEdit {
+        let buffer = s;
+        let ctx = String::with_capacity(8);
+        let cursor = buffer.len().checked_sub(1).unwrap_or(0);
+        let search = None;
 
-        _ => return None,
-    };
-
-    Some(action)
+        LineEdit {
+            buffer,
+            ctx,
+            cursor,
+            search,
+        }
+    }
 }
 
-fn parts(key_buffer: &str) -> (usize, &str) {
-    let mut i = 0;
-    for ch in key_buffer.chars() {
-        if !ch.is_digit(10) {
-            break;
+impl From<(String, usize)> for LineEdit {
+    fn from((buffer, cursor): (String, usize)) -> LineEdit {
+        let ctx = String::with_capacity(8);
+        let search = None;
+
+        LineEdit {
+            buffer,
+            ctx,
+            cursor,
+            search,
         }
-        i += 1;
+    }
+}
+
+impl TMode for LineEdit {
+    fn shows_cursor(&self) -> bool {
+        true
     }
 
-    (key_buffer[..i].parse().unwrap_or(1), &key_buffer[i..])
+    fn draw(&self, tui: &mut Tui) -> eyre::Result<()> {
+        tui.draw_cmdline(&self.buffer)?
+            .draw_key_buffer(&self.ctx)?
+            .draw_cursor_at(self.cursor)?;
+        Ok(())
+    }
+
+    fn process_key(mut self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+        match key.code {
+            KeyCode::Char(ch) => {
+                self.ctx.push(ch);
+            }
+
+            KeyCode::Enter => {
+                let cmd = Cmd::default();
+                RunCmd(&self.buffer).invoke(tui)?;
+                cmd.draw(tui)?;
+
+                return Ok(cmd.into());
+            }
+
+            _ => (),
+        };
+
+        match self.ctx.parse::<KeySeq>() {
+            Ok(key_seq) => {
+                self.ctx.clear();
+                let next = self.take_action(key_seq, tui)?;
+                next.draw(tui)?;
+                return Ok(next);
+            }
+
+            Err(KeySeqErr::Failed) => {
+                self.ctx.clear();
+            }
+
+            Err(KeySeqErr::Insufficient) => (),
+        }
+
+        self.draw(tui)?;
+        Ok(self.into())
+    }
+
+    fn process_ctl_key(self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+        match key.code {
+            KeyCode::Char('c') => {
+                let next = Cmd::default();
+                tui.hide_cursor()?;
+                next.draw(tui)?;
+
+                return Ok(next.into());
+            }
+
+            KeyCode::Char('d') => Scroll::HalfDown.invoke(tui)?,
+            KeyCode::Char('u') => Scroll::HalfUp.invoke(tui)?,
+            KeyCode::Char('f') => Scroll::FullDown.invoke(tui)?,
+            KeyCode::Char('b') => Scroll::FullUp.invoke(tui)?,
+            KeyCode::Char('l') => RotateWindowLock::Down.invoke(tui)?,
+            KeyCode::Char('o') => RotateWindowLock::Up.invoke(tui)?,
+            _ => (),
+        }
+
+        Ok(self.into())
+    }
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
+impl LineEdit {
+    pub fn take_action(mut self, key_seq: KeySeq, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+        let num = key_seq.num;
+        match key_seq.action {
+            KSAction::Move(range) => {
+                if let Some(cur) = range.find_next(&self.buffer, self.cursor, num, self.search) {
+                    self.cursor = cur;
+                }
+            }
 
-    #[test]
-    fn basic() {
-        assert_eq!(parts("123df'"), (123, "df'"));
-        assert_eq!(parts("df'"), (1, "df'"));
-        assert_eq!(parts("2"), (2, ""));
+            KSAction::Delete(Range::Whole) => self.buffer.clear(),
+            KSAction::Delete(range) => {
+                if let Some(cur) = range.find_next(&self.buffer, self.cursor, num, self.search) {
+                    let (min, max) = (cur.min(self.cursor), cur.max(self.cursor));
+
+                    self.buffer.drain(min..max);
+
+                    self.cursor = min;
+                }
+            }
+
+            KSAction::Change(Range::Whole) => {
+                self.buffer.clear();
+
+                let next = LineInsert::from((self.buffer, self.cursor));
+                next.draw(tui)?;
+
+                return Ok(next.into());
+            }
+
+            KSAction::Change(range) => {
+                if let Some(cur) = range.find_next(&self.buffer, self.cursor, num, self.search) {
+                    let (min, max) = (cur.min(self.cursor), cur.max(self.cursor));
+
+                    self.buffer.drain(min..max);
+
+                    self.cursor = min;
+                }
+
+                let next = LineInsert::from((self.buffer, self.cursor));
+                next.draw(tui)?;
+
+                return Ok(next.into());
+            }
+
+            KSAction::Replace(ch) => {
+                self.buffer.remove(self.cursor);
+                self.buffer.insert(self.cursor, ch);
+            }
+
+            KSAction::Transition(Transition::HardAppend) => {
+                let next = Cmd::from(self.buffer);
+                tui.hide_cursor()?;
+                next.draw(tui)?;
+
+                return Ok(next.into());
+            }
+
+            KSAction::Transition(transition) => {
+                let cursor = transition.update_cursor(&self.buffer, self.cursor);
+                let next = LineInsert::from((self.buffer, cursor));
+                next.draw(tui)?;
+
+                return Ok(next.into());
+            }
+
+            KSAction::History(history) => {
+                let hist = &mut tui.history;
+                match history {
+                    History::Recent => {
+                        if hist.active() {
+                            self.buffer = if let Some(cmd) = hist.down(num) {
+                                cmd.to_string()
+                            } else {
+                                hist.take().unwrap_or_default()
+                            };
+                        }
+                    }
+
+                    History::Past => {
+                        if !hist.active() {
+                            hist.hold(take(&mut self.buffer))
+                        }
+
+                        if let Some(cmd) = hist.up(num) {
+                            self.buffer = cmd.to_string()
+                        }
+                    }
+
+                    History::Current => {
+                        if hist.active() {
+                            self.buffer = hist.take().unwrap_or_default()
+                        }
+                    }
+
+                    History::Last => {
+                        if !hist.active() {
+                            hist.hold(take(&mut self.buffer))
+                        }
+
+                        if let Some(cmd) = hist.last() {
+                            self.buffer = cmd.to_string()
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(self.into())
     }
 }

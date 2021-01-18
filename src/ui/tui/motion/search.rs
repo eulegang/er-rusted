@@ -1,4 +1,4 @@
-use super::Motion;
+use super::{Idemp, Motion};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Search {
@@ -16,6 +16,12 @@ impl Motion for Search {
             Search::ForwardTo(ch) => ffind(buffer, cursor, *ch).map(|i| i - 1),
             Search::BackwardTo(ch) => bfind(buffer, cursor, *ch).map(|i| i + 1),
         }
+    }
+}
+
+impl Idemp for Search {
+    fn is_idempotent(&self) -> bool {
+        false
     }
 }
 

@@ -15,7 +15,12 @@ pub trait Motion {
     fn move_cursor(&self, buffer: &str, cursor: usize) -> Option<usize>;
 }
 
-#[enum_dispatch(Motion)]
+#[enum_dispatch]
+pub trait Idemp {
+    fn is_idempotent(&self) -> bool;
+}
+
+#[enum_dispatch(Motion, Idemp)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum SealedMotion {
     Absolute,

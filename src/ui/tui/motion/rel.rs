@@ -1,9 +1,15 @@
-use super::Motion;
+use super::{Idemp, Motion};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Relative {
     Left,
     Right,
+}
+
+impl Idemp for Relative {
+    fn is_idempotent(&self) -> bool {
+        false
+    }
 }
 
 impl Motion for Relative {

@@ -1,35 +1,36 @@
 use super::Tui;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent};
+use enum_dispatch::enum_dispatch;
 
 mod cmd;
-mod ctl;
+mod key_seq;
 mod line_edit;
+mod line_insert;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum Mode {
-    Cmd,
-    LineInsert,
-    LineEdit,
+pub use cmd::Cmd;
+pub use line_edit::LineEdit;
+pub use line_insert::LineInsert;
+
+pub use key_seq::{KeySeq, KeySeqErr};
+
+#[enum_dispatch]
+pub trait TMode {
+    fn shows_cursor(&self) -> bool;
+    fn process_key(self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode>;
+    fn process_ctl_key(self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode>;
+
+    fn draw(&self, tui: &mut Tui) -> eyre::Result<()>;
 }
 
-impl Mode {
-    pub(crate) fn process_key(&self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<()> {
-        if key.modifiers.contains(KeyModifiers::CONTROL) {
-            ctl::process_ctl(key, tui)?
-        } else {
-            match self {
-                Mode::Cmd => cmd::process_cmd(key, tui)?,
-                Mode::LineInsert => cmd::process_cmd(key, tui)?,
-                Mode::LineEdit => line_edit::process_line_edit(key, tui)?,
-            }
-        }
+#[enum_dispatch(TMode)]
+pub enum SealedTMode {
+    Cmd,
+    LineEdit,
+    LineInsert,
+}
 
-        tui.flush()?;
-
-        Ok(())
-    }
-
-    pub fn show_cursor(&self) -> bool {
-        !matches!(self, Mode::Cmd)
+impl Default for SealedTMode {
+    fn default() -> Self {
+        Cmd::default().into()
     }
 }

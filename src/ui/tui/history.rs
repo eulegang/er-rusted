@@ -42,15 +42,21 @@ impl History {
         }
     }
 
-    pub(crate) fn up(&mut self) -> Option<&str> {
-        self.pos = Some(self.pos.map_or(0, |p| p + 1));
+    pub(crate) fn up(&mut self, amount: usize) -> Option<&str> {
+        self.pos = Some(self.pos.map_or(0, |p| p + amount as u8));
         self.cap_pos();
 
         self.get()
     }
 
-    pub(crate) fn down(&mut self) -> Option<&str> {
-        self.pos = self.pos.map_or(None, |p| p.checked_sub(1));
+    pub(crate) fn down(&mut self, amount: usize) -> Option<&str> {
+        self.pos = self.pos.map_or(None, |p| p.checked_sub(amount as u8));
+
+        self.get()
+    }
+
+    pub(crate) fn last(&mut self) -> Option<&str> {
+        self.pos = (self.lines.len() as u8).checked_sub(1);
 
         self.get()
     }
@@ -60,6 +66,7 @@ impl History {
     }
 
     pub(crate) fn take(&mut self) -> Option<String> {
+        self.pos = None;
         self.hold.take()
     }
 

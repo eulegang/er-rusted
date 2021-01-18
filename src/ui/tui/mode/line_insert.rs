@@ -1,23 +1,35 @@
 use super::*;
 use crate::ui::tui::action::*;
 
-pub struct Cmd {
+pub struct LineInsert {
     buffer: String,
+    cursor: usize,
 }
 
-impl TMode for Cmd {
+impl TMode for LineInsert {
     fn shows_cursor(&self) -> bool {
-        false
+        true
+    }
+
+    fn draw(&self, tui: &mut Tui) -> eyre::Result<()> {
+        tui.draw_cmdline(&self.buffer)?
+            .draw_cursor_at(self.cursor)?;
+
+        Ok(())
     }
 
     fn process_key(mut self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
         match key.code {
             KeyCode::Char(ch) => {
-                self.buffer.push(ch);
+                self.buffer.insert(self.cursor, ch);
+                self.cursor += 1;
             }
 
             KeyCode::Backspace => {
-                self.buffer.pop();
+                if let Some(cur) = self.cursor.checked_sub(1) {
+                    self.buffer.remove(cur);
+                    self.cursor = cur;
+                }
             }
 
             KeyCode::Enter => {
@@ -26,9 +38,7 @@ impl TMode for Cmd {
             }
 
             KeyCode::Esc => {
-                let edit: LineEdit = self.buffer.into();
-                tui.show_cursor()?;
-                edit.draw(tui)?;
+                let edit: LineEdit = (self.buffer, self.cursor).into();
 
                 return Ok(edit.into());
             }
@@ -41,9 +51,15 @@ impl TMode for Cmd {
         Ok(self.into())
     }
 
-    fn process_ctl_key(mut self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+    fn process_ctl_key(self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
         match key.code {
-            KeyCode::Char('c') => self.buffer.clear(),
+            KeyCode::Char('c') => {
+                let next = Cmd::default();
+                tui.hide_cursor()?;
+                next.draw(tui)?;
+
+                return Ok(next.into());
+            }
 
             KeyCode::Char('d') => Scroll::HalfDown.invoke(tui)?,
             KeyCode::Char('u') => Scroll::HalfUp.invoke(tui)?,
@@ -56,24 +72,19 @@ impl TMode for Cmd {
 
         Ok(self.into())
     }
-
-    fn draw(&self, tui: &mut Tui) -> eyre::Result<()> {
-        tui.draw_cmdline(&self.buffer)?;
-
-        Ok(())
-    }
 }
 
-impl Default for Cmd {
+impl Default for LineInsert {
     fn default() -> Self {
         let buffer = String::default();
+        let cursor = buffer.len().checked_sub(1).unwrap_or(0);
 
-        Cmd { buffer }
+        LineInsert { buffer, cursor }
     }
 }
 
-impl From<String> for Cmd {
-    fn from(buffer: String) -> Cmd {
-        Cmd { buffer }
+impl From<(String, usize)> for LineInsert {
+    fn from((buffer, cursor): (String, usize)) -> LineInsert {
+        LineInsert { buffer, cursor }
     }
 }
