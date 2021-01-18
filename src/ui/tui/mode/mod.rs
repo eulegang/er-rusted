@@ -15,7 +15,6 @@ pub use key_seq::{KeySeq, KeySeqErr};
 
 #[enum_dispatch]
 pub trait TMode {
-    fn shows_cursor(&self) -> bool;
     fn process_key(self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode>;
     fn process_ctl_key(self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode>;
 

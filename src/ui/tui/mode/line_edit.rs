@@ -53,10 +53,6 @@ impl From<(String, usize)> for LineEdit {
 }
 
 impl TMode for LineEdit {
-    fn shows_cursor(&self) -> bool {
-        true
-    }
-
     fn draw(&self, tui: &mut Tui) -> eyre::Result<()> {
         tui.draw_cmdline(&self.buffer)?
             .draw_key_buffer(&self.ctx)?

@@ -6,10 +6,6 @@ pub struct Cmd {
 }
 
 impl TMode for Cmd {
-    fn shows_cursor(&self) -> bool {
-        false
-    }
-
     fn process_key(mut self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
         match key.code {
             KeyCode::Char(ch) => {

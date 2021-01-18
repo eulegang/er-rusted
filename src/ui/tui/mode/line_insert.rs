@@ -7,10 +7,6 @@ pub struct LineInsert {
 }
 
 impl TMode for LineInsert {
-    fn shows_cursor(&self) -> bool {
-        true
-    }
-
     fn draw(&self, tui: &mut Tui) -> eyre::Result<()> {
         tui.draw_cmdline(&self.buffer)?
             .draw_cursor_at(self.cursor)?;
