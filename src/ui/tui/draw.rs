@@ -103,7 +103,6 @@ impl Tui {
         Ok(self)
     }
 
-    #[allow(dead_code)]
     pub(crate) fn draw_scratch(&mut self) -> eyre::Result<&mut Self> {
         let (_, height) = size()?;
         let height = height as usize;
@@ -122,7 +121,7 @@ impl Tui {
                 .queue(MoveToNextLine(1))?;
         }
 
-        for line in lines {
+        for line in lines.iter().rev() {
             self.stdout
                 .queue(Clear(ClearType::CurrentLine))?
                 .queue(Print(line))?

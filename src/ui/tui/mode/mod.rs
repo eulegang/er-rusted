@@ -6,10 +6,12 @@ mod cmd;
 mod key_seq;
 mod line_edit;
 mod line_insert;
+mod scratch;
 
 pub use cmd::Cmd;
 pub use line_edit::LineEdit;
 pub use line_insert::LineInsert;
+pub use scratch::Scratch;
 
 pub use key_seq::{KeySeq, KeySeqErr};
 
@@ -26,6 +28,7 @@ pub enum SealedTMode {
     Cmd,
     LineEdit,
     LineInsert,
+    Scratch,
 }
 
 impl Default for SealedTMode {

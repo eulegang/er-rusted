@@ -34,7 +34,6 @@ impl ScratchPad for StoreScratchPad {
 }
 
 impl StoreScratchPad {
-    #[allow(dead_code)]
     pub fn buffer_lines(&mut self, cap: usize) -> Vec<&str> {
         let mut buf = Vec::with_capacity(cap);
 
@@ -49,14 +48,33 @@ impl StoreScratchPad {
         buf
     }
 
-    #[allow(dead_code)]
     pub fn is_stale(&self) -> bool {
         self.stale
     }
 
-    #[allow(dead_code)]
     pub fn refresh(&mut self) {
         self.stale = false;
         self.offset = 0;
+    }
+
+    pub fn up(&mut self, delta: usize, frame_size: usize) {
+        self.offset += delta;
+        self.offset = self
+            .offset
+            .min(self.lines.len().checked_sub(frame_size).unwrap_or(0))
+    }
+
+    pub fn down(&mut self, delta: usize) {
+        self.offset = self.offset.checked_sub(delta).unwrap_or(0)
+    }
+
+    pub fn last(&mut self, frame_size: usize) {
+        self.offset = self.lines.len().checked_sub(frame_size).unwrap_or(0)
+    }
+
+    pub fn clear(&mut self) {
+        self.lines.clear();
+        self.offset = 0;
+        self.stale = false;
     }
 }

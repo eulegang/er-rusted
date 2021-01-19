@@ -29,14 +29,33 @@ impl TMode for LineInsert {
             }
 
             KeyCode::Enter => {
+                let next = Cmd::default();
                 RunCmd(&self.buffer).invoke(tui)?;
-                self.buffer.clear();
+
+                if tui.interp.scratch.is_stale() {
+                    tui.interp.scratch.refresh();
+                    tui.hide_cursor()?;
+
+                    let next: Scratch = next.into();
+                    next.draw(tui)?;
+                    return Ok(next.into());
+                }
+
+                next.draw(tui)?;
+                return Ok(next.into());
             }
 
             KeyCode::Esc => {
                 let edit: LineEdit = (self.buffer, self.cursor).into();
 
                 return Ok(edit.into());
+            }
+
+            KeyCode::Tab => {
+                let next: Scratch = self.into();
+                next.draw(tui)?;
+                tui.hide_cursor()?;
+                return Ok(next.into());
             }
 
             _ => (),

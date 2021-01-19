@@ -67,11 +67,27 @@ impl TMode for LineEdit {
             }
 
             KeyCode::Enter => {
-                let cmd = Cmd::default();
+                let next = Cmd::default();
                 RunCmd(&self.buffer).invoke(tui)?;
-                cmd.draw(tui)?;
 
-                return Ok(cmd.into());
+                if tui.interp.scratch.is_stale() {
+                    tui.interp.scratch.refresh();
+                    tui.hide_cursor()?;
+
+                    let next: Scratch = next.into();
+                    next.draw(tui)?;
+                    return Ok(next.into());
+                }
+
+                next.draw(tui)?;
+                return Ok(next.into());
+            }
+
+            KeyCode::Tab => {
+                let next: Scratch = self.into();
+                next.draw(tui)?;
+                tui.hide_cursor()?;
+                return Ok(next.into());
             }
 
             _ => (),

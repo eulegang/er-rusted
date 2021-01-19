@@ -19,6 +19,13 @@ impl TMode for Cmd {
             KeyCode::Enter => {
                 RunCmd(&self.buffer).invoke(tui)?;
                 self.buffer.clear();
+
+                if tui.interp.scratch.is_stale() {
+                    tui.interp.scratch.refresh();
+                    let next: Scratch = self.into();
+                    next.draw(tui)?;
+                    return Ok(next.into());
+                }
             }
 
             KeyCode::Esc => {
@@ -27,6 +34,12 @@ impl TMode for Cmd {
                 edit.draw(tui)?;
 
                 return Ok(edit.into());
+            }
+
+            KeyCode::Tab => {
+                let next: Scratch = self.into();
+                next.draw(tui)?;
+                return Ok(next.into());
             }
 
             _ => (),
