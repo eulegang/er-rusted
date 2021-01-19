@@ -11,7 +11,7 @@ pub use window_lock::RotateWindowLock;
 
 #[enum_dispatch]
 pub trait Action {
-    fn invoke(&self, tui: &mut Tui) -> eyre::Result<()>;
+    fn invoke(&self, tui: &mut Tui) -> crossterm::Result<()>;
 }
 
 #[enum_dispatch(Action)]

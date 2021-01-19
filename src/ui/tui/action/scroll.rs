@@ -10,7 +10,7 @@ pub enum Scroll {
 }
 
 impl Action for Scroll {
-    fn invoke(&self, tui: &mut Tui) -> eyre::Result<()> {
+    fn invoke(&self, tui: &mut Tui) -> crossterm::Result<()> {
         let (_, w) = size()?;
         let w: usize = w.into();
         match self {

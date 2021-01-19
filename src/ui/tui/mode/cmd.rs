@@ -6,7 +6,7 @@ pub struct Cmd {
 }
 
 impl TMode for Cmd {
-    fn process_key(mut self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+    fn process_key(mut self, key: KeyEvent, tui: &mut Tui) -> crossterm::Result<SealedTMode> {
         match key.code {
             KeyCode::Char(ch) => {
                 self.buffer.push(ch);
@@ -50,7 +50,7 @@ impl TMode for Cmd {
         Ok(self.into())
     }
 
-    fn process_ctl_key(mut self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+    fn process_ctl_key(mut self, key: KeyEvent, tui: &mut Tui) -> crossterm::Result<SealedTMode> {
         match key.code {
             KeyCode::Char('c') => self.buffer.clear(),
 
@@ -66,7 +66,7 @@ impl TMode for Cmd {
         Ok(self.into())
     }
 
-    fn draw(&self, tui: &mut Tui) -> eyre::Result<()> {
+    fn draw(&self, tui: &mut Tui) -> crossterm::Result<()> {
         tui.draw_cmdline(&self.buffer)?;
 
         Ok(())

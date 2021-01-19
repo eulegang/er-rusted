@@ -53,14 +53,14 @@ impl From<(String, usize)> for LineEdit {
 }
 
 impl TMode for LineEdit {
-    fn draw(&self, tui: &mut Tui) -> eyre::Result<()> {
+    fn draw(&self, tui: &mut Tui) -> crossterm::Result<()> {
         tui.draw_cmdline(&self.buffer)?
             .draw_key_buffer(&self.ctx)?
             .draw_cursor_at(self.cursor)?;
         Ok(())
     }
 
-    fn process_key(mut self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+    fn process_key(mut self, key: KeyEvent, tui: &mut Tui) -> crossterm::Result<SealedTMode> {
         match key.code {
             KeyCode::Char(ch) => {
                 self.ctx.push(ch);
@@ -112,7 +112,7 @@ impl TMode for LineEdit {
         Ok(self.into())
     }
 
-    fn process_ctl_key(self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+    fn process_ctl_key(self, key: KeyEvent, tui: &mut Tui) -> crossterm::Result<SealedTMode> {
         match key.code {
             KeyCode::Char('c') => {
                 let next = Cmd::default();
@@ -136,7 +136,7 @@ impl TMode for LineEdit {
 }
 
 impl LineEdit {
-    pub fn take_action(mut self, key_seq: KeySeq, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+    pub fn take_action(mut self, key_seq: KeySeq, tui: &mut Tui) -> crossterm::Result<SealedTMode> {
         let num = key_seq.num;
         match key_seq.action {
             KSAction::Move(range) => {

@@ -48,7 +48,7 @@ impl Tui {
         })
     }
 
-    fn input_loop(&mut self) -> eyre::Result<()> {
+    fn input_loop(&mut self) -> crossterm::Result<()> {
         let mut tmode = SealedTMode::default();
         loop {
             tmode = self.process(tmode, read()?)?;
@@ -58,7 +58,7 @@ impl Tui {
         }
     }
 
-    fn process(&mut self, tmode: SealedTMode, event: Event) -> eyre::Result<SealedTMode> {
+    fn process(&mut self, tmode: SealedTMode, event: Event) -> crossterm::Result<SealedTMode> {
         let next = match event {
             Event::Key(key) => {
                 if !key.modifiers.contains(KeyModifiers::CONTROL) {
@@ -93,7 +93,7 @@ impl UI for Tui {
 
         self.draw_buffer()?;
 
-        let res = self.input_loop();
+        let res = self.input_loop().wrap_err("Failed to write to tui");
 
         if res.is_ok() {
             self.queue(Clear(ClearType::All))?

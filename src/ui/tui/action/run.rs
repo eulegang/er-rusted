@@ -6,7 +6,7 @@ use std::str::FromStr;
 pub struct RunCmd<'a>(pub &'a str);
 
 impl Action for RunCmd<'_> {
-    fn invoke(&self, tui: &mut Tui) -> eyre::Result<()> {
+    fn invoke(&self, tui: &mut Tui) -> crossterm::Result<()> {
         tui.history.reset();
 
         if !self.0.trim().is_empty() {

@@ -10,7 +10,7 @@ pub struct Scratch {
 }
 
 impl TMode for Scratch {
-    fn process_key(mut self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+    fn process_key(mut self, key: KeyEvent, tui: &mut Tui) -> crossterm::Result<SealedTMode> {
         let scratch = &mut tui.interp.scratch;
 
         match key.code {
@@ -108,11 +108,11 @@ impl TMode for Scratch {
         Ok(self.into())
     }
 
-    fn process_ctl_key(self, _: KeyEvent, _: &mut Tui) -> eyre::Result<SealedTMode> {
+    fn process_ctl_key(self, _: KeyEvent, _: &mut Tui) -> crossterm::Result<SealedTMode> {
         Ok(self.into())
     }
 
-    fn draw(&self, tui: &mut Tui) -> eyre::Result<()> {
+    fn draw(&self, tui: &mut Tui) -> crossterm::Result<()> {
         tui.draw_scratch()?;
         Ok(())
     }

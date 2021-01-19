@@ -17,10 +17,10 @@ pub use key_seq::{KeySeq, KeySeqErr};
 
 #[enum_dispatch]
 pub trait TMode {
-    fn process_key(self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode>;
-    fn process_ctl_key(self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode>;
+    fn process_key(self, key: KeyEvent, tui: &mut Tui) -> crossterm::Result<SealedTMode>;
+    fn process_ctl_key(self, key: KeyEvent, tui: &mut Tui) -> crossterm::Result<SealedTMode>;
 
-    fn draw(&self, tui: &mut Tui) -> eyre::Result<()>;
+    fn draw(&self, tui: &mut Tui) -> crossterm::Result<()>;
 }
 
 #[enum_dispatch(TMode)]

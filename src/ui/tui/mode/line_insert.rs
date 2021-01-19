@@ -7,14 +7,14 @@ pub struct LineInsert {
 }
 
 impl TMode for LineInsert {
-    fn draw(&self, tui: &mut Tui) -> eyre::Result<()> {
+    fn draw(&self, tui: &mut Tui) -> crossterm::Result<()> {
         tui.draw_cmdline(&self.buffer)?
             .draw_cursor_at(self.cursor)?;
 
         Ok(())
     }
 
-    fn process_key(mut self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+    fn process_key(mut self, key: KeyEvent, tui: &mut Tui) -> crossterm::Result<SealedTMode> {
         match key.code {
             KeyCode::Char(ch) => {
                 self.buffer.insert(self.cursor, ch);
@@ -66,7 +66,7 @@ impl TMode for LineInsert {
         Ok(self.into())
     }
 
-    fn process_ctl_key(self, key: KeyEvent, tui: &mut Tui) -> eyre::Result<SealedTMode> {
+    fn process_ctl_key(self, key: KeyEvent, tui: &mut Tui) -> crossterm::Result<SealedTMode> {
         match key.code {
             KeyCode::Char('c') => {
                 let next = Cmd::default();

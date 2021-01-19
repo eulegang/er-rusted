@@ -8,7 +8,7 @@ use crossterm::{
 use std::io::{self, Write};
 
 impl Tui {
-    pub(crate) fn draw_buffer(&mut self) -> eyre::Result<&mut Self> {
+    pub(crate) fn draw_buffer(&mut self) -> crossterm::Result<&mut Self> {
         let (_, height) = size()?;
         let mut height: usize = height.into();
         let mut offset = 0;
@@ -68,7 +68,7 @@ impl Tui {
         self.stdout.flush()
     }
 
-    pub(crate) fn draw_cmdline(&mut self, line: &str) -> eyre::Result<&mut Self> {
+    pub(crate) fn draw_cmdline(&mut self, line: &str) -> crossterm::Result<&mut Self> {
         self.stdout
             .queue(cursor::SavePosition)?
             .queue(MoveTo(0, 0))?
@@ -80,7 +80,7 @@ impl Tui {
         Ok(self)
     }
 
-    pub(crate) fn draw_key_buffer(&mut self, keys: &str) -> eyre::Result<&mut Self> {
+    pub(crate) fn draw_key_buffer(&mut self, keys: &str) -> crossterm::Result<&mut Self> {
         let (width, _) = size()?;
 
         self.stdout
@@ -92,7 +92,7 @@ impl Tui {
         Ok(self)
     }
 
-    pub(crate) fn draw_error(&mut self) -> eyre::Result<&mut Self> {
+    pub(crate) fn draw_error(&mut self) -> crossterm::Result<&mut Self> {
         self.stdout
             .queue(cursor::SavePosition)?
             .queue(MoveTo(0, 0))?
@@ -103,7 +103,7 @@ impl Tui {
         Ok(self)
     }
 
-    pub(crate) fn draw_scratch(&mut self) -> eyre::Result<&mut Self> {
+    pub(crate) fn draw_scratch(&mut self) -> crossterm::Result<&mut Self> {
         let (_, height) = size()?;
         let height = height as usize;
         let lines = self.interp.scratch.buffer_lines(height);
@@ -133,19 +133,19 @@ impl Tui {
         Ok(self)
     }
 
-    pub(crate) fn show_cursor(&mut self) -> eyre::Result<&mut Self> {
+    pub(crate) fn show_cursor(&mut self) -> crossterm::Result<&mut Self> {
         self.stdout.queue(cursor::Show)?;
 
         Ok(self)
     }
 
-    pub(crate) fn hide_cursor(&mut self) -> eyre::Result<&mut Self> {
+    pub(crate) fn hide_cursor(&mut self) -> crossterm::Result<&mut Self> {
         self.stdout.queue(cursor::Hide)?;
 
         Ok(self)
     }
 
-    pub(crate) fn draw_cursor_at(&mut self, cursor: usize) -> eyre::Result<&mut Self> {
+    pub(crate) fn draw_cursor_at(&mut self, cursor: usize) -> crossterm::Result<&mut Self> {
         self.stdout.queue(cursor::MoveTo(cursor as u16 + 2, 0))?;
 
         Ok(self)
