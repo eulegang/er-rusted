@@ -204,7 +204,7 @@ impl Command {
             }
 
             Run(cmd) => {
-                if !cmd.run(&interp.env) {
+                if !cmd.run(&interp.env, &mut interp.scratch) {
                     return Err(());
                 }
 

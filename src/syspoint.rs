@@ -1,6 +1,6 @@
 use crate::{
     buffer::{chomp, Buffer},
-    interp::Env,
+    interp::{scratch::ScratchPad, Env},
 };
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Write};
@@ -254,7 +254,10 @@ impl Cmd {
         Some(buf)
     }
 
-    pub(crate) fn run(&self, env: &Env) -> bool {
+    pub(crate) fn run<Scratch>(&self, env: &Env, scratch: &mut Scratch) -> bool
+    where
+        Scratch: ScratchPad,
+    {
         let cmd = if let Some(cmd) =
             self.replace_filename(env.filename.as_deref(), env.last_cmd.as_deref())
         {
@@ -263,12 +266,28 @@ impl Cmd {
             return false;
         };
 
-        let status = SysCmd::new("sh").arg("-c").arg(cmd).status();
+        let output = match SysCmd::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .stdout(Stdio::piped())
+            .spawn()
+        {
+            Ok(child) => match child.wait_with_output() {
+                Ok(output) => output,
+                _ => return false,
+            },
+            _ => return false,
+        };
 
-        if status.map_or(false, |s| s.success()) {
-            true
-        } else {
-            false
+        let buf = BufReader::new(&*output.stdout);
+
+        for line in buf.lines() {
+            match line {
+                Ok(l) => scratch.print(&l),
+                _ => continue,
+            }
         }
+
+        output.status.success()
     }
 }
