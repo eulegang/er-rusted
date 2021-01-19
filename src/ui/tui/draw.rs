@@ -92,12 +92,12 @@ impl Tui {
         Ok(self)
     }
 
-    pub(crate) fn draw_error(&mut self) -> crossterm::Result<&mut Self> {
+    pub(crate) fn draw_error(&mut self, msg: &str) -> crossterm::Result<&mut Self> {
         self.stdout
             .queue(cursor::SavePosition)?
             .queue(MoveTo(0, 0))?
             .queue(Clear(ClearType::CurrentLine))?
-            .queue(Print(style("* ").with(Color::Red)))?
+            .queue(Print(style(format!("* {}", msg)).with(Color::Red)))?
             .queue(cursor::RestorePosition)?;
 
         Ok(self)

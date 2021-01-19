@@ -1,5 +1,5 @@
 use crate::{
-    cmd::{Command, SubstFlags},
+    cmd::{Command, InvocationError, SubstFlags},
     re::{Pat, Re},
     Buffer,
 };
@@ -92,7 +92,7 @@ where
     S: ScratchPad,
 {
     /// Executes a command on the given buffer
-    pub fn exec(&mut self, cmd: &Command) -> Result<bool, ()> {
+    pub fn exec(&mut self, cmd: &Command) -> Result<bool, InvocationError> {
         let (res, _) = cmd.invoke(self)?;
 
         Ok(res)

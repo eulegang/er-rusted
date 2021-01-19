@@ -118,7 +118,7 @@ impl Repl {
         }
 
         match self.interp.exec(&cmd) {
-            Err(()) => InvalidInvocation,
+            Err(_) => InvalidInvocation,
             Ok(true) => Next,
             Ok(false) => Quit,
         }

@@ -27,12 +27,14 @@ impl Command {
     pub(crate) fn invoke<S: ScratchPad>(
         &self,
         interp: &mut Interpreter<S>,
-    ) -> Result<(bool, MarkMod), ()> {
+    ) -> Result<(bool, MarkMod), InvocationError> {
         use Command::*;
 
         match self {
             Print(addr) => {
-                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
+                let (start, end) = addr
+                    .resolve_range(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
 
                 for line in start..=end {
                     if let Some(l) = interp.buffer.line(line) {
@@ -44,7 +46,9 @@ impl Command {
             }
 
             Scroll(offset, num) => {
-                let line = offset.resolve_line(&interp.buffer).ok_or(())?;
+                let line = offset
+                    .resolve_line(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
                 let num = num.or(interp.env.scroll).unwrap_or(22);
                 let pad = digits(interp.buffer.lines());
 
@@ -60,7 +64,9 @@ impl Command {
             }
 
             Delete(addr) => {
-                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
+                let (start, end) = addr
+                    .resolve_range(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
                 interp.buffer.remove(start, end);
                 interp.buffer.set_cursor(start);
 
@@ -73,16 +79,24 @@ impl Command {
             }
 
             Mark(offset, mark) => {
-                let line = offset.resolve_line(&interp.buffer).ok_or(())?;
+                let line = offset
+                    .resolve_line(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
                 interp.buffer.make_mark(*mark, line);
 
                 Ok((true, MarkMod::Nil))
             }
 
             Join(addr) => {
-                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
+                let (start, end) = addr
+                    .resolve_range(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
 
-                let lines: Vec<String> = interp.buffer.remove(start, end).ok_or(())?.collect();
+                let lines: Vec<String> = interp
+                    .buffer
+                    .remove(start, end)
+                    .ok_or(InvocationError::AddressNonResolvable)?
+                    .collect();
                 let mut it = lines.into_iter();
 
                 if let Some(mut insert) = it.next() {
@@ -104,11 +118,15 @@ impl Command {
             }
 
             Move(addr, offset) => {
-                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
-                let target = offset.resolve_line(&interp.buffer).ok_or(())?;
+                let (start, end) = addr
+                    .resolve_range(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
+                let target = offset
+                    .resolve_line(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
 
                 if start <= target && target <= end {
-                    return Err(());
+                    return Err(InvocationError::InvalidTarget);
                 }
 
                 let to = if target > end {
@@ -117,7 +135,11 @@ impl Command {
                     target
                 };
 
-                let lines = interp.buffer.remove(start, end).ok_or(())?.collect();
+                let lines = interp
+                    .buffer
+                    .remove(start, end)
+                    .ok_or(InvocationError::AddressNonResolvable)?
+                    .collect();
                 interp.buffer.append(to, lines);
 
                 let delta = if start < to {
@@ -137,9 +159,16 @@ impl Command {
             }
 
             Transfer(addr, offset) => {
-                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
-                let to = offset.resolve_line(&interp.buffer).ok_or(())?;
-                let lines = interp.buffer.range(start, end).ok_or(())?;
+                let (start, end) = addr
+                    .resolve_range(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
+                let to = offset
+                    .resolve_line(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
+                let lines = interp
+                    .buffer
+                    .range(start, end)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
                 interp.buffer.append(to, lines);
 
                 let markmod = MarkMod::After {
@@ -150,8 +179,13 @@ impl Command {
             }
 
             Yank(addr) => {
-                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
-                let lines = interp.buffer.range(start, end).ok_or(())?;
+                let (start, end) = addr
+                    .resolve_range(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
+                let lines = interp
+                    .buffer
+                    .range(start, end)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
 
                 interp.env.cut = lines;
 
@@ -159,7 +193,9 @@ impl Command {
             }
 
             Paste(offset) => {
-                let line = offset.resolve_line(&interp.buffer).ok_or(())?;
+                let line = offset
+                    .resolve_line(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
                 interp.buffer.append(line, interp.env.cut.clone());
 
                 let markmod = MarkMod::After {
@@ -171,8 +207,14 @@ impl Command {
             }
 
             Write(addr, syncer, quit) => {
-                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
-                let lines = interp.buffer.range(start, end).ok_or(())?.to_vec();
+                let (start, end) = addr
+                    .resolve_range(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
+                let lines = interp
+                    .buffer
+                    .range(start, end)
+                    .ok_or(InvocationError::AddressNonResolvable)?
+                    .to_vec();
                 syncer.sync(&mut interp.buffer, &interp.env, &lines);
 
                 if let SysPoint::Command(Cmd::System(cmd)) = syncer {
@@ -183,11 +225,15 @@ impl Command {
             }
 
             Read(offset, src) => {
-                let line = offset.resolve_line(&interp.buffer).ok_or(())?;
-                let lines = src.source(&interp.buffer, &interp.env).ok_or(())?;
+                let line = offset
+                    .resolve_line(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
+                let lines = src
+                    .source(&interp.buffer, &interp.env)
+                    .ok_or(InvocationError::UnableToSource)?;
                 let delta = lines.len();
                 if !interp.buffer.append(line, lines) {
-                    return Err(());
+                    return Err(InvocationError::InvalidInsertion);
                 }
 
                 if let SysPoint::Command(Cmd::System(cmd)) = src {
@@ -205,7 +251,7 @@ impl Command {
 
             Run(cmd) => {
                 if !cmd.run(&interp.env, &mut interp.scratch) {
-                    return Err(());
+                    return Err(InvocationError::FailedCommand);
                 }
 
                 if let Cmd::System(cmd) = cmd {
@@ -218,20 +264,33 @@ impl Command {
             Edit(point) => {
                 match point {
                     SysPoint::Filename => {
-                        let filename = interp.env.filename.as_ref().ok_or(())?;
-                        let read = File::open(filename).or(Err(()))?;
-                        interp.buffer.load(read).or(Err(()))?;
+                        let filename = interp
+                            .env
+                            .filename
+                            .as_ref()
+                            .ok_or(InvocationError::MissingFilename)?;
+                        let read = File::open(filename).or(Err(InvocationError::ReadFile))?;
+                        interp
+                            .buffer
+                            .load(read)
+                            .or(Err(InvocationError::ReadFile))?;
                     }
 
                     SysPoint::File(filename) => {
-                        let read = File::open(filename).or(Err(()))?;
-                        interp.buffer.load(read).or(Err(()))?;
+                        let read = File::open(filename).or(Err(InvocationError::ReadFile))?;
+                        interp
+                            .buffer
+                            .load(read)
+                            .or(Err(InvocationError::ReadFile))?;
                         interp.env.filename = Some(filename.clone());
                     }
 
                     SysPoint::Command(cmd) => {
-                        let read = cmd.read(&interp.env).or(Err(()))?;
-                        interp.buffer.load(&*read).or(Err(()))?;
+                        let read = cmd.read(&interp.env).or(Err(InvocationError::ReadFile))?;
+                        interp
+                            .buffer
+                            .load(&*read)
+                            .or(Err(InvocationError::ReadFile))?;
                         interp.env.filename = None
                     }
                 };
@@ -240,7 +299,9 @@ impl Command {
             }
 
             Subst(addr, re, pat, flags) => {
-                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
+                let (start, end) = addr
+                    .resolve_range(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
 
                 let flags = flags.unwrap_or_else(|| {
                     if re.is_none() && pat.is_none() {
@@ -252,11 +313,13 @@ impl Command {
 
                 let re = match (re, &interp.env.last_re) {
                     (Some(re), _) | (None, Some(re)) => re.clone(),
-                    (None, None) => return Err(()),
+                    (None, None) => return Err(InvocationError::MissingPattern),
                 };
 
                 let pat = match (pat, &interp.env.last_pat) {
-                    (Some(Pat::Replay), None) | (None, None) => return Err(()),
+                    (Some(Pat::Replay), None) | (None, None) => {
+                        return Err(InvocationError::MissingPattern)
+                    }
                     (Some(Pat::Replay), Some(pat)) | (Some(pat), _) | (None, Some(pat)) => {
                         pat.clone()
                     }
@@ -271,7 +334,7 @@ impl Command {
                     &flags,
                     &mut interp.scratch,
                 ) {
-                    return Err(());
+                    return Err(InvocationError::DidNotReplace);
                 }
 
                 interp.env.last_re = Some(re);
@@ -283,11 +346,13 @@ impl Command {
             Quit => Ok((false, MarkMod::Nil)),
 
             Global(addr, re, cmd_list) => {
-                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
+                let (start, end) = addr
+                    .resolve_range(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
 
                 let re = match (re, &interp.env.last_re) {
                     (Some(re), _) | (None, Some(re)) => re.clone(),
-                    (None, None) => Err(())?,
+                    (None, None) => Err(InvocationError::MissingPattern)?,
                 };
 
                 let mut marked = Vec::new();
@@ -315,11 +380,13 @@ impl Command {
             }
 
             Void(addr, re, cmd_list) => {
-                let (start, end) = addr.resolve_range(&interp.buffer).ok_or(())?;
+                let (start, end) = addr
+                    .resolve_range(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
 
                 let re = match (re, &interp.env.last_re) {
                     (Some(re), _) | (None, Some(re)) => re.clone(),
-                    (None, None) => Err(())?,
+                    (None, None) => Err(InvocationError::MissingPattern)?,
                 };
 
                 let mut marked = Vec::new();
@@ -347,20 +414,26 @@ impl Command {
             }
 
             Nop(offset) => {
-                let line = offset.resolve_line(&interp.buffer).ok_or(())?;
+                let line = offset
+                    .resolve_line(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
                 interp.buffer.set_cursor(line);
                 Ok((true, MarkMod::Nil))
             }
 
             Append(line_ref, Some(lines)) => {
-                let line = line_ref.resolve_line(&interp.buffer).ok_or(())?;
+                let line = line_ref
+                    .resolve_line(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
                 let delta = lines.len() as i64;
                 interp.buffer.append(line, lines.clone());
                 Ok((true, MarkMod::After { start: line, delta }))
             }
 
             Insert(line_ref, Some(lines)) => {
-                let line = line_ref.resolve_line(&interp.buffer).ok_or(())?;
+                let line = line_ref
+                    .resolve_line(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
                 let delta = lines.len() as i64;
                 interp.buffer.insert(line, lines.clone());
                 Ok((
@@ -373,19 +446,24 @@ impl Command {
             }
 
             Change(line_ref, Some(lines)) => {
-                let (start, end) = line_ref.resolve_range(&interp.buffer).ok_or(())?;
+                let (start, end) = line_ref
+                    .resolve_range(&interp.buffer)
+                    .ok_or(InvocationError::AddressNonResolvable)?;
                 let delta = lines.len() as i64 - (1 + end - start) as i64;
                 interp.buffer.change(start, end, lines.clone());
                 Ok((true, MarkMod::After { start, delta }))
             }
 
             NextBuffer => {
-                let filename = interp.filelist.get(interp.filepos + 1).ok_or(())?;
+                let filename = interp
+                    .filelist
+                    .get(interp.filepos + 1)
+                    .ok_or(InvocationError::ArgFetch)?;
 
                 let buffer = match File::open(filename) {
-                    Ok(f) => Buffer::read(f).or(Err(()))?,
+                    Ok(f) => Buffer::read(f).or(Err(InvocationError::ReadFile))?,
                     Err(e) if e.kind() == ErrorKind::NotFound => Buffer::default(),
-                    Err(_) => Err(())?,
+                    Err(_) => Err(InvocationError::ReadFile)?,
                 };
 
                 interp.env.filename = Some(filename.to_string());
@@ -396,13 +474,17 @@ impl Command {
             }
 
             PrevBuffer => {
-                let pos = interp.filepos.checked_sub(1).ok_or(())?;
-                let filename = interp.filelist.get(pos).ok_or(())?;
+                let pos = interp
+                    .filepos
+                    .checked_sub(1)
+                    .ok_or(InvocationError::ArgFetch)?;
+
+                let filename = interp.filelist.get(pos).ok_or(InvocationError::ArgFetch)?;
 
                 let buffer = match File::open(filename) {
-                    Ok(f) => Buffer::read(f).or(Err(()))?,
+                    Ok(f) => Buffer::read(f).or(Err(InvocationError::ReadFile))?,
                     Err(e) if e.kind() == ErrorKind::NotFound => Buffer::default(),
-                    Err(_) => Err(())?,
+                    Err(_) => Err(InvocationError::ReadFile)?,
                 };
 
                 interp.env.filename = Some(filename.to_string());

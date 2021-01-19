@@ -15,7 +15,7 @@ impl Action for RunCmd<'_> {
 
         if let Ok(cmd) = Command::from_str(self.0) {
             if cmd.needs_text() {
-                tui.draw_error()?.flush()?;
+                tui.draw_error("text needed (not supported yet)")?.flush()?;
                 return Ok(());
             }
 
@@ -28,12 +28,12 @@ impl Action for RunCmd<'_> {
                     tui.draw_cmdline("")?.draw_buffer()?;
                 }
 
-                Err(()) => {
-                    tui.draw_error()?;
+                Err(err) => {
+                    tui.draw_error(&format!("{}", err))?;
                 }
             }
         } else {
-            tui.draw_error()?;
+            tui.draw_error("unable to parse command")?;
         }
 
         Ok(())

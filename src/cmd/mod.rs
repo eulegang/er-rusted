@@ -83,6 +83,20 @@ pub struct SubstFlags {
     pub occurances: usize,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum InvocationError {
+    AddressNonResolvable,
+    ReadFile,
+    ArgFetch,
+    MissingPattern,
+    DidNotReplace,
+    MissingFilename,
+    FailedCommand,
+    InvalidInsertion,
+    UnableToSource,
+    InvalidTarget,
+}
+
 impl Command {
     /// Append, Insert, and Change need text to operate but may be input without the text to
     /// operate with.  This method tells if the command still needs text to operate.
@@ -113,6 +127,23 @@ impl Default for SubstFlags {
         SubstFlags {
             print: false,
             occurances: 1,
+        }
+    }
+}
+
+impl std::fmt::Display for InvocationError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            InvocationError::AddressNonResolvable => write!(fmt, "unable to resolve address"),
+            InvocationError::ReadFile => write!(fmt, "unable to read file"),
+            InvocationError::ArgFetch => write!(fmt, "out of arglist"),
+            InvocationError::MissingPattern => write!(fmt, "missing prior pattern"),
+            InvocationError::DidNotReplace => write!(fmt, "did not replace"),
+            InvocationError::MissingFilename => write!(fmt, "missing filename"),
+            InvocationError::FailedCommand => write!(fmt, "failed to run command"),
+            InvocationError::InvalidInsertion => write!(fmt, "invalid line insertion"),
+            InvocationError::UnableToSource => write!(fmt, "unable to read source"),
+            InvocationError::InvalidTarget => write!(fmt, "invalid target"),
         }
     }
 }

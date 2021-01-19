@@ -69,8 +69,8 @@ impl UI for Script {
 
             for cmd in &self.commands {
                 match interp.exec(cmd) {
-                    Err(()) => {
-                        eprintln!("failed to exec on {}", file);
+                    Err(err) => {
+                        eprintln!("{} failed to exec on {}", err, file);
                         continue 'files;
                     }
                     Ok(true) => (),
