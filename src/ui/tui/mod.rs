@@ -109,9 +109,5 @@ impl UI for Tui {
 impl Drop for Tui {
     fn drop(&mut self) {
         let _ = disable_raw_mode();
-
-        if cfg!(debug_assertions) {
-            dbg!(self);
-        }
     }
 }
