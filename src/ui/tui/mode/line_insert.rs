@@ -41,7 +41,6 @@ impl TMode for LineInsert {
                     return Ok(next.into());
                 }
 
-                next.draw(tui)?;
                 return Ok(next.into());
             }
 

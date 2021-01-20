@@ -44,8 +44,6 @@ impl Tui {
             }
         }
 
-        self.flush()?;
-
         Ok(self)
     }
 

@@ -26,6 +26,8 @@ impl TMode for Cmd {
                     next.draw(tui)?;
                     return Ok(next.into());
                 }
+
+                return Ok(self.into());
             }
 
             KeyCode::Esc => {

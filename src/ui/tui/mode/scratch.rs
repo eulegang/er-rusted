@@ -16,11 +16,11 @@ impl TMode for Scratch {
         match key.code {
             KeyCode::Tab => {
                 let next: SealedTMode = self.prev.into();
-                next.draw(tui)?;
                 if !matches!(next, SealedTMode::Cmd(_)) {
                     tui.show_cursor()?;
                 }
                 tui.draw_buffer()?;
+                next.draw(tui)?;
                 return Ok(next);
             }
 

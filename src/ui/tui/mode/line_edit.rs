@@ -79,7 +79,6 @@ impl TMode for LineEdit {
                     return Ok(next.into());
                 }
 
-                next.draw(tui)?;
                 return Ok(next.into());
             }
 
