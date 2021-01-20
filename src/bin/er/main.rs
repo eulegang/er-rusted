@@ -15,8 +15,8 @@ struct Opt {
     #[structopt(short = "e", long = "expr", name = "expr", conflicts_with("file"))]
     expression: Option<String>,
 
-    #[structopt(short = "V", long = "visual")]
-    visual: bool,
+    #[structopt(short = "T", long = "disable-visual")]
+    disable_visual: bool,
 }
 
 fn main() -> eyre::Result<()> {
@@ -37,9 +37,7 @@ fn main() -> eyre::Result<()> {
             bail!("prompt used noninteractively");
         }
 
-        let visual_env = std::env::var("ER_VISUAL").is_ok();
-
-        if opt.visual || visual_env {
+        if !opt.disable_visual {
             let mut tui = Tui::new(opt.files).wrap_err("failed to build tui")?;
 
             tui.run()
