@@ -11,6 +11,7 @@ use eyre::WrapErr;
 use history::History;
 use lock::WindowLock;
 use mode::{SealedTMode, TMode};
+use motion::Search;
 use std::env::var;
 use std::io::Stdout;
 
@@ -29,6 +30,7 @@ pub struct Tui {
     pub(crate) window_lock: WindowLock,
     pub(crate) history: History,
     pub(crate) pending_quit: bool,
+    pub(crate) search: Option<Search>,
 }
 
 impl Tui {
@@ -39,6 +41,7 @@ impl Tui {
         let history = History::new();
         let window_lock = WindowLock::Top;
         let pending_quit = false;
+        let search = None;
 
         Ok(Tui {
             interp,
@@ -46,6 +49,7 @@ impl Tui {
             window_lock,
             history,
             pending_quit,
+            search,
         })
     }
 

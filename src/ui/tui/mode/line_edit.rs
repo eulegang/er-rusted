@@ -1,7 +1,7 @@
 use super::*;
 use crate::ui::tui::action::{Action, RotateWindowLock, RunCmd, Scroll};
 use crate::ui::tui::mode::key_seq::*;
-use crate::ui::tui::motion::*;
+use crate::ui::tui::motion::SealedMotion;
 use crossterm::event::KeyEvent;
 use std::convert::Infallible;
 use std::mem::take;
@@ -11,7 +11,6 @@ pub struct LineEdit {
     buffer: String,
     ctx: String,
     cursor: usize,
-    search: Option<Search>,
 }
 
 impl FromStr for LineEdit {
@@ -27,13 +26,11 @@ impl From<String> for LineEdit {
         let buffer = s;
         let ctx = String::with_capacity(8);
         let cursor = buffer.len().checked_sub(1).unwrap_or(0);
-        let search = None;
 
         LineEdit {
             buffer,
             ctx,
             cursor,
-            search,
         }
     }
 }
@@ -41,13 +38,11 @@ impl From<String> for LineEdit {
 impl From<(String, usize)> for LineEdit {
     fn from((buffer, cursor): (String, usize)) -> LineEdit {
         let ctx = String::with_capacity(8);
-        let search = None;
 
         LineEdit {
             buffer,
             ctx,
             cursor,
-            search,
         }
     }
 }
@@ -139,19 +134,27 @@ impl LineEdit {
         let num = key_seq.num;
         match key_seq.action {
             KSAction::Move(range) => {
-                if let Some(cur) = range.find_next(&self.buffer, self.cursor, num, self.search) {
+                if let Some(cur) = range.find_next(&self.buffer, self.cursor, num, tui.search) {
                     self.cursor = cur;
+                }
+
+                if let Range::Motion(SealedMotion::Search(search)) = range {
+                    tui.search = Some(search);
                 }
             }
 
             KSAction::Delete(Range::Whole) => self.buffer.clear(),
             KSAction::Delete(range) => {
-                if let Some(cur) = range.find_next(&self.buffer, self.cursor, num, self.search) {
+                if let Some(cur) = range.find_next(&self.buffer, self.cursor, num, tui.search) {
                     let (min, max) = (cur.min(self.cursor), cur.max(self.cursor));
 
                     self.buffer.drain(min..max);
 
                     self.cursor = min;
+                }
+
+                if let Range::Motion(SealedMotion::Search(search)) = range {
+                    tui.search = Some(search);
                 }
             }
 
@@ -165,12 +168,16 @@ impl LineEdit {
             }
 
             KSAction::Change(range) => {
-                if let Some(cur) = range.find_next(&self.buffer, self.cursor, num, self.search) {
+                if let Some(cur) = range.find_next(&self.buffer, self.cursor, num, tui.search) {
                     let (min, max) = (cur.min(self.cursor), cur.max(self.cursor));
 
                     self.buffer.drain(min..max);
 
                     self.cursor = min;
+                }
+
+                if let Range::Motion(SealedMotion::Search(search)) = range {
+                    tui.search = Some(search);
                 }
 
                 let next = LineInsert::from((self.buffer, self.cursor));
