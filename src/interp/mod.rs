@@ -1,5 +1,6 @@
 use crate::{
     cmd::{Command, InvocationError, SubstFlags},
+    interp::write_hook::WriteHook,
     re::{Pat, Re},
     Buffer,
 };
@@ -9,6 +10,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{self, ErrorKind};
 
 pub(crate) mod scratch;
+pub(crate) mod write_hook;
 
 /// Interprets commands on a buffer
 #[derive(Debug)]
@@ -33,6 +35,7 @@ pub struct Env {
     pub(crate) last_cmd: Option<String>,
     pub(crate) last_rcmd: Option<String>,
     pub(crate) last_wcmd: Option<String>,
+    pub(crate) write_hook: WriteHook,
 }
 
 impl Interpreter {
@@ -126,6 +129,8 @@ impl Default for Env {
         let last_rcmd = None;
         let last_wcmd = None;
 
+        let write_hook = WriteHook::default();
+
         Env {
             cut,
             filename,
@@ -138,6 +143,8 @@ impl Default for Env {
             last_cmd,
             last_rcmd,
             last_wcmd,
+
+            write_hook,
         }
     }
 }

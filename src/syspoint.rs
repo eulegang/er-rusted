@@ -39,35 +39,16 @@ pub trait Sourcer {
 
 impl Syncer for SysPoint {
     fn sync(&self, buffer: &mut Buffer, env: &Env, lines: &[String]) -> bool {
-        fn sync_file(name: &str, lines: &[String]) -> bool {
-            if let Ok(mut file) = OpenOptions::new()
-                .truncate(true)
-                .write(true)
-                .create(true)
-                .open(name)
-            {
-                for line in lines {
-                    if let Err(_) = writeln!(file, "{}", line) {
-                        return false;
-                    }
-                }
-
-                true
-            } else {
-                false
-            }
-        }
-
         match self {
             SysPoint::Filename => {
                 if let Some(filename) = &env.filename {
-                    sync_file(filename, lines)
+                    env.write_hook.sync(filename, buffer, lines)
                 } else {
                     false
                 }
             }
 
-            SysPoint::File(name) => sync_file(name, lines),
+            SysPoint::File(name) => env.write_hook.sync(name, buffer, lines),
             SysPoint::Command(command) => command.sync(buffer, env, lines),
         }
     }

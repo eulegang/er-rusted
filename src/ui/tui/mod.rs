@@ -1,5 +1,5 @@
 use super::UI;
-use crate::{interp::scratch::StoreScratchPad, Interpreter};
+use crate::{interp::scratch::StoreScratchPad, interp::write_hook::WriteHook, Interpreter};
 use crossterm::{
     cursor::{self, MoveTo},
     event::{read, Event, KeyModifiers},
@@ -11,6 +11,7 @@ use eyre::WrapErr;
 use history::History;
 use lock::WindowLock;
 use mode::{SealedTMode, TMode};
+use std::env::var;
 use std::io::Stdout;
 
 mod action;
@@ -78,6 +79,10 @@ impl Tui {
 
 impl UI for Tui {
     fn run(&mut self) -> eyre::Result<()> {
+        if let Ok(hook) = var("ER_WRITE_HOOK") {
+            self.interp.env.write_hook = WriteHook::Proc(hook);
+        }
+
         enable_raw_mode()?;
         let hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(move |info| {
