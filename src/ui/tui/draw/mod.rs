@@ -5,7 +5,6 @@ use crossterm::{
     terminal::{size, Clear, ClearType},
     QueueableCommand,
 };
-use std::io::{self, Write};
 
 mod buffer;
 mod cmd;
