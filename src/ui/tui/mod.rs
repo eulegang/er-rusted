@@ -7,13 +7,14 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType},
     QueueableCommand,
 };
+use draw::*;
 use eyre::WrapErr;
 use history::History;
 use lock::WindowLock;
 use mode::{SealedTMode, TMode};
 use motion::Search;
 use std::env::var;
-use std::io::Stdout;
+use std::io::{Stdout, Write};
 
 mod action;
 mod draw;
@@ -75,7 +76,7 @@ impl Tui {
             _ => Ok(tmode),
         };
 
-        self.flush()?;
+        self.stdout.flush()?;
 
         next
     }
@@ -94,21 +95,25 @@ impl UI for Tui {
             hook(info)
         }));
 
-        self.queue(Clear(ClearType::All))?
+        self.stdout
+            .queue(Clear(ClearType::All))?
             .queue(cursor::Hide)?
             .queue(MoveTo(0, 0))?
-            .queue(Print(": "))?
-            .flush()?;
+            .queue(Print(": "))?;
 
-        self.draw_buffer()?;
+        self.stdout.flush()?;
+
+        CmdDrawCmd("").draw(self)?;
+        BufferDrawCmd.draw(self)?;
 
         let res = self.input_loop().wrap_err("Failed to write to tui");
 
         if res.is_ok() {
-            self.queue(Clear(ClearType::All))?
+            self.stdout
+                .queue(Clear(ClearType::All))?
                 .queue(cursor::Show)?
-                .queue(cursor::MoveTo(0, 0))?
-                .flush()?;
+                .queue(cursor::MoveTo(0, 0))?;
+            self.stdout.flush()?;
         }
 
         res

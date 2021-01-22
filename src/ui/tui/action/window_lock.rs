@@ -1,4 +1,5 @@
 use super::*;
+use crate::ui::tui::draw::*;
 
 pub enum RotateWindowLock {
     Down,
@@ -11,7 +12,8 @@ impl Action for RotateWindowLock {
             RotateWindowLock::Down => tui.window_lock = tui.window_lock.next(),
             RotateWindowLock::Up => tui.window_lock = tui.window_lock.prev(),
         }
-        tui.draw_buffer()?;
+
+        BufferDrawCmd.draw(tui)?;
 
         Ok(())
     }

@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq)]
-pub(crate) enum WindowLock {
+pub enum WindowLock {
     Top,
     Perc20,
     Middle,
@@ -9,7 +9,7 @@ pub(crate) enum WindowLock {
 
 impl WindowLock {
     /// finds the position to start rendering or err if negative space should be used
-    pub(crate) fn find_pos(&self, height: usize, cur: usize) -> Result<usize, usize> {
+    pub fn find_pos(&self, height: usize, cur: usize) -> Result<usize, usize> {
         let diff = match self {
             WindowLock::Top => 1,
             WindowLock::Perc20 => height / 5,
@@ -25,7 +25,7 @@ impl WindowLock {
         }
     }
 
-    pub(crate) fn next(&self) -> WindowLock {
+    pub fn next(&self) -> WindowLock {
         match self {
             WindowLock::Top => WindowLock::Perc20,
             WindowLock::Perc20 => WindowLock::Middle,
@@ -35,7 +35,7 @@ impl WindowLock {
         }
     }
 
-    pub(crate) fn prev(&self) -> WindowLock {
+    pub fn prev(&self) -> WindowLock {
         match self {
             WindowLock::Top => WindowLock::Bottom,
             WindowLock::Perc20 => WindowLock::Top,

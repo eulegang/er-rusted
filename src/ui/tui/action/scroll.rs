@@ -1,4 +1,5 @@
 use super::Action;
+use crate::ui::tui::draw::*;
 use crate::ui::tui::Tui;
 use crossterm::terminal::size;
 
@@ -32,7 +33,7 @@ impl Action for Scroll {
             }
         }
 
-        tui.draw_buffer()?;
+        BufferDrawCmd.draw(tui)?;
 
         Ok(())
     }

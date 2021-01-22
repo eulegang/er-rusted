@@ -1,4 +1,5 @@
 use super::Action;
+use crate::ui::tui::draw::*;
 use crate::ui::tui::Tui;
 use crate::Command;
 use std::str::FromStr;
@@ -15,7 +16,7 @@ impl Action for RunCmd<'_> {
 
         if let Ok(cmd) = Command::from_str(self.0) {
             if cmd.needs_text() {
-                tui.draw_error("text needed (not supported yet)")?.flush()?;
+                ErrorDrawCmd("text needed (not supported yet)").draw(tui)?;
                 return Ok(());
             }
 
@@ -25,15 +26,16 @@ impl Action for RunCmd<'_> {
                 }
 
                 Ok(true) => {
-                    tui.draw_cmdline("")?.draw_buffer()?;
+                    CmdDrawCmd("").draw(tui)?;
+                    BufferDrawCmd.draw(tui)?;
                 }
 
                 Err(err) => {
-                    tui.draw_error(&format!("{}", err))?;
+                    ErrorDrawCmd(&format!("{}", err)).draw(tui)?;
                 }
             }
         } else {
-            tui.draw_error("unable to parse command")?;
+            ErrorDrawCmd("unable to parse command").draw(tui)?;
         }
 
         Ok(())

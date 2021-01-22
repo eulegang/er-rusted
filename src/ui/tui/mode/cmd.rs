@@ -1,5 +1,6 @@
 use super::*;
 use crate::ui::tui::action::*;
+use crate::ui::tui::draw::*;
 
 pub struct Cmd {
     buffer: String,
@@ -32,7 +33,7 @@ impl TMode for Cmd {
 
             KeyCode::Esc => {
                 let edit: LineEdit = self.buffer.into();
-                tui.show_cursor()?;
+                ShowCursorDrawCmd(true).draw(tui)?;
                 edit.draw(tui)?;
 
                 return Ok(edit.into());
@@ -69,7 +70,7 @@ impl TMode for Cmd {
     }
 
     fn draw(&self, tui: &mut Tui) -> crossterm::Result<()> {
-        tui.draw_cmdline(&self.buffer)?;
+        CmdDrawCmd(&self.buffer).draw(tui)?;
 
         Ok(())
     }

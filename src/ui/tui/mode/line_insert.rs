@@ -1,5 +1,6 @@
 use super::*;
 use crate::ui::tui::action::*;
+use crate::ui::tui::draw::*;
 
 pub struct LineInsert {
     buffer: String,
@@ -8,8 +9,8 @@ pub struct LineInsert {
 
 impl TMode for LineInsert {
     fn draw(&self, tui: &mut Tui) -> crossterm::Result<()> {
-        tui.draw_cmdline(&self.buffer)?
-            .draw_cursor_at(self.cursor)?;
+        CmdDrawCmd(&self.buffer).draw(tui)?;
+        CursorDrawCmd(self.cursor).draw(tui)?;
 
         Ok(())
     }
@@ -34,7 +35,7 @@ impl TMode for LineInsert {
 
                 if tui.interp.scratch.is_stale() {
                     tui.interp.scratch.refresh();
-                    tui.hide_cursor()?;
+                    ShowCursorDrawCmd(false).draw(tui)?;
 
                     let next: Scratch = next.into();
                     next.draw(tui)?;
@@ -53,7 +54,7 @@ impl TMode for LineInsert {
             KeyCode::Tab => {
                 let next: Scratch = self.into();
                 next.draw(tui)?;
-                tui.hide_cursor()?;
+                ShowCursorDrawCmd(false).draw(tui)?;
                 return Ok(next.into());
             }
 
@@ -69,7 +70,7 @@ impl TMode for LineInsert {
         match key.code {
             KeyCode::Char('c') => {
                 let next = Cmd::default();
-                tui.hide_cursor()?;
+                ShowCursorDrawCmd(false).draw(tui)?;
                 next.draw(tui)?;
 
                 return Ok(next.into());

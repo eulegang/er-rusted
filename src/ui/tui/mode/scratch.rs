@@ -1,4 +1,5 @@
 use super::{Cmd, LineEdit, LineInsert, SealedTMode, TMode, Tui};
+use crate::ui::tui::draw::*;
 use crossterm::{
     event::{KeyCode, KeyEvent},
     terminal::size,
@@ -17,15 +18,16 @@ impl TMode for Scratch {
             KeyCode::Tab => {
                 let next: SealedTMode = self.prev.into();
                 if !matches!(next, SealedTMode::Cmd(_)) {
-                    tui.show_cursor()?;
+                    ShowCursorDrawCmd(true).draw(tui)?;
                 }
-                tui.draw_buffer()?;
+                BufferDrawCmd.draw(tui)?;
                 next.draw(tui)?;
                 return Ok(next);
             }
 
             KeyCode::Char(digit) if digit.is_digit(10) => {
                 self.key_buffer.push(digit);
+                return Ok(self.into());
             }
 
             KeyCode::Char('j') => {
@@ -33,7 +35,6 @@ impl TMode for Scratch {
                 self.key_buffer.clear();
 
                 scratch.down(delta);
-                tui.draw_scratch()?;
             }
 
             KeyCode::Char('k') => {
@@ -42,8 +43,6 @@ impl TMode for Scratch {
                 let delta: usize = self.key_buffer.parse().unwrap_or(1);
                 self.key_buffer.clear();
                 scratch.up(delta, w);
-
-                tui.draw_scratch()?;
             }
 
             KeyCode::Char('d') => {
@@ -51,8 +50,6 @@ impl TMode for Scratch {
                 let (_, w) = size()?;
                 let w: usize = w.into();
                 scratch.down(w / 2);
-
-                tui.draw_scratch()?;
             }
 
             KeyCode::Char('u') => {
@@ -60,8 +57,6 @@ impl TMode for Scratch {
                 let (_, w) = size()?;
                 let w: usize = w.into();
                 scratch.up(w / 2, w);
-
-                tui.draw_scratch()?;
             }
 
             KeyCode::Char('f') => {
@@ -69,16 +64,13 @@ impl TMode for Scratch {
                 let (_, w) = size()?;
                 let w: usize = w.into();
                 scratch.down(w);
-
-                tui.draw_scratch()?;
             }
+
             KeyCode::Char('b') => {
                 self.key_buffer.clear();
                 let (_, w) = size()?;
                 let w: usize = w.into();
                 scratch.up(w, w);
-
-                tui.draw_scratch()?;
             }
 
             KeyCode::Char('g') => {
@@ -86,24 +78,22 @@ impl TMode for Scratch {
                 let (_, w) = size()?;
                 let w: usize = w.into();
                 scratch.last(w);
-
-                tui.draw_scratch()?;
             }
 
             KeyCode::Char('G') => {
                 self.key_buffer.clear();
                 scratch.refresh();
-                tui.draw_scratch()?;
             }
 
             KeyCode::Char('C') => {
                 self.key_buffer.clear();
                 scratch.clear();
-                tui.draw_scratch()?;
             }
 
             _ => (),
         };
+
+        ScratchDrawCmd.draw(tui)?;
 
         Ok(self.into())
     }
@@ -113,7 +103,7 @@ impl TMode for Scratch {
     }
 
     fn draw(&self, tui: &mut Tui) -> crossterm::Result<()> {
-        tui.draw_scratch()?;
+        ScratchDrawCmd.draw(tui)?;
         Ok(())
     }
 }

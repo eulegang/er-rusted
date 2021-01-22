@@ -1,5 +1,6 @@
 use super::*;
 use crate::ui::tui::action::{Action, RotateWindowLock, RunCmd, Scroll};
+use crate::ui::tui::draw::*;
 use crate::ui::tui::mode::key_seq::*;
 use crate::ui::tui::motion::SealedMotion;
 use crossterm::event::KeyEvent;
@@ -49,9 +50,10 @@ impl From<(String, usize)> for LineEdit {
 
 impl TMode for LineEdit {
     fn draw(&self, tui: &mut Tui) -> crossterm::Result<()> {
-        tui.draw_cmdline(&self.buffer)?
-            .draw_key_buffer(&self.ctx)?
-            .draw_cursor_at(self.cursor)?;
+        CmdDrawCmd(&self.buffer).draw(tui)?;
+        KeyBufferDrawCmd(&self.ctx).draw(tui)?;
+        CursorDrawCmd(self.cursor).draw(tui)?;
+
         Ok(())
     }
 
@@ -67,7 +69,7 @@ impl TMode for LineEdit {
 
                 if tui.interp.scratch.is_stale() {
                     tui.interp.scratch.refresh();
-                    tui.hide_cursor()?;
+                    ShowCursorDrawCmd(false).draw(tui)?;
 
                     let next: Scratch = next.into();
                     next.draw(tui)?;
@@ -80,7 +82,7 @@ impl TMode for LineEdit {
             KeyCode::Tab => {
                 let next: Scratch = self.into();
                 next.draw(tui)?;
-                tui.hide_cursor()?;
+                ShowCursorDrawCmd(false).draw(tui)?;
                 return Ok(next.into());
             }
 
@@ -110,7 +112,7 @@ impl TMode for LineEdit {
         match key.code {
             KeyCode::Char('c') => {
                 let next = Cmd::default();
-                tui.hide_cursor()?;
+                ShowCursorDrawCmd(false).draw(tui)?;
                 next.draw(tui)?;
 
                 return Ok(next.into());
@@ -193,7 +195,6 @@ impl LineEdit {
 
             KSAction::Transition(Transition::HardAppend) => {
                 let next = Cmd::from(self.buffer);
-                tui.hide_cursor()?;
                 next.draw(tui)?;
 
                 return Ok(next.into());
