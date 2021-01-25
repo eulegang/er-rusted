@@ -171,7 +171,9 @@ impl Command {
             let origin = line;
 
             if let Some(pos) = line.find('#') {
-                line = line.split_at(pos).0;
+                if line[..pos].trim().is_empty() {
+                    continue;
+                }
             }
 
             line = line.trim();

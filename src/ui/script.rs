@@ -41,11 +41,18 @@ impl Script {
     }
 
     /// Create a script from an expression and run it against files
-    pub fn from_expr(expr: &str, backup: Option<String>, files: Vec<String>) -> eyre::Result<Self> {
-        let commands = match Command::from_expr(expr) {
-            Ok(cmds) => cmds,
-            Err(_) => bail!("{} is an invalid expression", expr),
-        };
+    pub fn from_expr(
+        exprs: Vec<String>,
+        backup: Option<String>,
+        files: Vec<String>,
+    ) -> eyre::Result<Self> {
+        let mut commands = Vec::new();
+        for expr in exprs {
+            match Command::from_expr(&expr) {
+                Ok(cmds) => commands.extend(cmds),
+                Err(_) => bail!("{} is an invalid expression", expr),
+            }
+        }
 
         Ok(Script {
             commands,

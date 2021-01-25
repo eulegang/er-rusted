@@ -13,7 +13,7 @@ struct Opt {
     script: Option<String>,
 
     #[structopt(short = "e", long = "expr", name = "expr", conflicts_with("file"))]
-    expression: Option<String>,
+    expressions: Vec<String>,
 
     #[structopt(short = "T", long = "disable-visual")]
     disable_visual: bool,
@@ -27,8 +27,8 @@ fn main() -> eyre::Result<()> {
             .wrap_err("failed to build script from file")?;
 
         script.run()
-    } else if let Some(expr) = opt.expression {
-        let mut script = Script::from_expr(&expr, opt.inplace, opt.files)
+    } else if !opt.expressions.is_empty() {
+        let mut script = Script::from_expr(opt.expressions, opt.inplace, opt.files)
             .wrap_err("failed to build script from expression")?;
 
         script.run()
