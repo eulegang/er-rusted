@@ -7,8 +7,8 @@ use nom::{
     IResult,
 };
 
-use crate::addr::Point;
-use crate::re::Re;
+use crate::ed::addr::Point;
+use crate::ed::re::Re;
 use std::str::FromStr;
 
 const FRE_ESCAPES: &str = "\\.+*?()|[]{}^$?\"/dDwWsS";

@@ -1,13 +1,13 @@
 use super::*;
+use crate::ed::syspoint::{Cmd, SysPoint};
 use crate::interp::scratch::ScratchPad;
 use crate::interp::Interpreter;
-use crate::syspoint::{Cmd, SysPoint};
 use regex::Captures;
 use std::cmp::{max, min};
 use std::fs::File;
 use std::io::ErrorKind;
 
-use crate::resolve::{LineResolver, RangeResolver};
+use crate::ed::resolve::{LineResolver, RangeResolver};
 
 #[derive(Debug)]
 pub enum MarkMod {

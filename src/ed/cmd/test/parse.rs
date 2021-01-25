@@ -243,8 +243,8 @@ mod transfer {
 
 mod subst {
     use super::*;
-    use crate::cmd::SubstFlags;
-    use crate::re::Pat;
+    use crate::ed::cmd::SubstFlags;
+    use crate::ed::re::Pat;
 
     #[test]
     fn default() {

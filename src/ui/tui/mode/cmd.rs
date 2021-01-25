@@ -1,8 +1,8 @@
 use super::*;
+use crate::ed::cmd::Command;
 use crate::interp::scratch::ScratchPad;
 use crate::ui::tui::action::*;
 use crate::ui::tui::draw::*;
-use crate::Command;
 use std::str::FromStr;
 
 #[derive(Debug)]

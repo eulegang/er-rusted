@@ -1,10 +1,4 @@
-use crate::{
-    addr::{Address, Offset},
-    re::{Pat, Re},
-    resolve::{LineResolver, RangeResolver},
-    syspoint::{Cmd, Sourcer, Syncer, SysPoint},
-    Buffer,
-};
+use crate::{ed::prelude::*, Buffer};
 
 mod action;
 

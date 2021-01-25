@@ -1,5 +1,5 @@
 use super::Parsable;
-use crate::addr::{Address, Offset, Point};
+use crate::ed::addr::{Address, Offset, Point};
 use nom::{character::complete::one_of, combinator::opt, IResult};
 
 impl Parsable for Address {

@@ -1,6 +1,6 @@
 use super::UI;
 use crate::{
-    cmd::Command,
+    ed::cmd::Command,
     interp::{scratch::StdoutScratchPad, Interpreter},
 };
 use eyre::{bail, WrapErr};

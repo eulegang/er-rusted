@@ -1,4 +1,4 @@
-use crate::cmd::SubstFlags;
+use crate::ed::cmd::SubstFlags;
 
 use super::Parsable;
 

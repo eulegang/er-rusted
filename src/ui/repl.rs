@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::{cmd::Command, interp::Interpreter};
+use crate::{ed::cmd::Command, interp::Interpreter};
 use eyre::WrapErr;
 use rustyline::{error::ReadlineError, Config, EditMode, Editor, Helper};
 use std::str::FromStr;

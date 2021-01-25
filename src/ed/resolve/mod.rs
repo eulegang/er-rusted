@@ -1,5 +1,4 @@
-use crate::addr::{Address, Offset, Point};
-use crate::buffer::Buffer;
+use crate::{ed::prelude::*, Buffer};
 
 pub trait RangeResolver {
     fn resolve_range(&self, buffer: &Buffer) -> Option<(usize, usize)>;

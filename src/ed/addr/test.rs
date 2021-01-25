@@ -1,6 +1,6 @@
-use crate::addr::{Address, Offset, Point};
+use crate::ed::prelude::*;
 
-use crate::parse::Parsable;
+use crate::ed::parse::Parsable;
 use nom::combinator::all_consuming;
 use std::str::FromStr;
 

@@ -1,7 +1,7 @@
 use super::Action;
+use crate::ed::cmd::Command;
 use crate::ui::tui::draw::*;
 use crate::ui::tui::Tui;
-use crate::Command;
 use std::str::FromStr;
 
 pub struct RunCmd<'a>(pub &'a str);

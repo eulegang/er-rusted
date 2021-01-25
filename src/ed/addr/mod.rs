@@ -1,4 +1,4 @@
-use crate::re::Re;
+use super::re::Re;
 
 #[cfg(test)]
 mod test;

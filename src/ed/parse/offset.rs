@@ -1,5 +1,5 @@
 use super::Parsable;
-use crate::addr::{Offset, Point};
+use crate::ed::addr::{Offset, Point};
 use nom::{
     character::complete::{digit0, one_of},
     combinator::opt,

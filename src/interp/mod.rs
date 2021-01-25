@@ -1,9 +1,9 @@
-use crate::{
+use crate::ed::{
     cmd::{Command, InvocationError, SubstFlags},
-    interp::write_hook::WriteHook,
     re::{Pat, Re},
-    Buffer,
 };
+
+use crate::{interp::write_hook::WriteHook, Buffer};
 
 use scratch::{ScratchPad, StdoutScratchPad};
 use std::fs::{File, OpenOptions};
