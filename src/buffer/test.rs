@@ -269,5 +269,5 @@ fn test_change() {
 fn test_lines() {
     let buffer = Buffer::read(SAMPLE_TEXT.as_bytes()).unwrap();
 
-    assert_eq!(buffer.lines(), 4);
+    assert_eq!(buffer.len(), 4);
 }

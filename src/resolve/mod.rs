@@ -41,7 +41,7 @@ impl LineResolver for Point {
             Point::Current => Some(buffer.cursor()),
             Point::Abs(s) => Some(s.clone()),
             Point::Mark(ch) => buffer.mark(*ch),
-            Point::Last => Some(buffer.lines()),
+            Point::Last => Some(buffer.len()),
 
             Point::Ref(re) => {
                 let mut i = buffer.cursor() + 1;

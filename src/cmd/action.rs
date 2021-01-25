@@ -50,7 +50,7 @@ impl Command {
                     .resolve_line(&interp.buffer)
                     .ok_or(InvocationError::AddressNonResolvable)?;
                 let num = num.or(interp.env.scroll).unwrap_or(22);
-                let pad = digits(interp.buffer.lines());
+                let pad = digits(interp.buffer.len());
 
                 for pos in line..(line + num) {
                     if let Some(l) = interp.buffer.line(pos) {

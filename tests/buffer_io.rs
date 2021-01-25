@@ -7,7 +7,7 @@ fn test_read() {
     let buf = Buffer::read(content.as_bytes()).unwrap();
 
     assert_eq!(buf.cursor(), 1, "buffer starts before the first line");
-    assert_eq!(buf.lines(), 2, "buffer starts before the first line");
+    assert_eq!(buf.len(), 2, "buffer starts before the first line");
 
     assert_eq!(buf.line(1), Some("hello"), "first line");
     assert_eq!(buf.line(2), Some("world"), "second line");
@@ -17,7 +17,7 @@ fn test_read() {
     let buf = Buffer::read(content.as_bytes()).unwrap();
 
     assert_eq!(buf.cursor(), 1, "buffer starts before the first line");
-    assert_eq!(buf.lines(), 2, "buffer starts before the first line");
+    assert_eq!(buf.len(), 2, "buffer starts before the first line");
 
     assert_eq!(buf.line(1), Some("hello"), "first line");
     assert_eq!(buf.line(2), Some("world"), "second line");
@@ -27,7 +27,7 @@ fn test_read() {
     let buf = Buffer::read(content.as_bytes()).unwrap();
 
     assert_eq!(buf.cursor(), 1, "buffer starts before the first line");
-    assert_eq!(buf.lines(), 2, "buffer starts before the first line");
+    assert_eq!(buf.len(), 2, "buffer starts before the first line");
 
     assert_eq!(buf.line(1), Some("hello"), "first line");
     assert_eq!(buf.line(2), Some("world"), "second line");

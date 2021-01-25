@@ -126,7 +126,7 @@ impl Buffer {
     }
 
     /// gives the number of lines
-    pub fn lines(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.lines.len()
     }
 
@@ -205,6 +205,25 @@ impl Buffer {
         }
 
         Some(buf)
+    }
+
+    /// returns a window a lines
+    ///
+    /// offset must be >= 1, and gives where the first element should reside
+    /// size gives a max of how large the resultent vec should be, it may be smaller
+    pub fn window(&self, mut offset: usize, size: usize) -> Option<Vec<&str>> {
+        if offset == 0 {
+            return None;
+        }
+
+        let mut v = Vec::with_capacity(size);
+
+        while offset <= self.lines.len() {
+            v.push(self.lines[offset - 1].as_ref());
+            offset += 1;
+        }
+
+        Some(v)
     }
 
     /// Append lines after a point in the buffer

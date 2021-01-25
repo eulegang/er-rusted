@@ -1,6 +1,7 @@
 use crate::{
     addr::{Address, Offset},
     re::{Pat, Re},
+    resolve::{LineResolver, RangeResolver},
     syspoint::{Cmd, Sourcer, Syncer, SysPoint},
     Buffer,
 };
@@ -119,6 +120,18 @@ impl Command {
 
             _ => panic!("can not inject text into non aci commands"),
         };
+    }
+
+    pub(crate) fn text_markers(&self, buffer: &Buffer) -> Option<(usize, usize)> {
+        match self {
+            Command::Append(line, None) => line.resolve_line(buffer).map(|line| (line + 1, 0)),
+            Command::Insert(line, None) => line.resolve_line(buffer).map(|line| (line, 0)),
+            Command::Change(addr, None) => addr
+                .resolve_range(buffer)
+                .map(|(line, hide)| (line, hide - line)),
+
+            _ => None,
+        }
     }
 }
 
