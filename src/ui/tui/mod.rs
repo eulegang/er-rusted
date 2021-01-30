@@ -101,10 +101,9 @@ impl UI for Tui {
             .queue(MoveTo(0, 0))?
             .queue(Print(": "))?;
 
-        self.stdout.flush()?;
-
-        CmdDrawCmd("").draw(self)?;
         BufferDrawCmd.draw(self)?;
+
+        self.stdout.flush()?;
 
         let res = self.input_loop().wrap_err("Failed to write to tui");
 
