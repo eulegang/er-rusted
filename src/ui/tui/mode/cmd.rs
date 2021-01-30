@@ -95,6 +95,7 @@ impl Cmd {
             Ok(cmd) => cmd,
             Err(_) => {
                 ErrorDrawCmd("unable to parse command").draw(tui)?;
+                self.buffer.clear();
                 return Ok(self.into());
             }
         };
