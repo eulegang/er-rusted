@@ -343,3 +343,15 @@ fn empty_insert() {
     let out = String::from_utf8(bytes).expect("content should be ascii");
     assert_eq!(&out, "hello\nthere\n");
 }
+
+#[test]
+fn test_window() {
+    const CONTENT: &str = "hello\nworld\ntschuess\nwelt";
+    let buf = Buffer::read(CONTENT.as_bytes()).unwrap();
+
+    assert_eq!(&buf.window(2, 2), &["world", "tschuess"]);
+    assert_eq!(&buf.window(1, 2), &["hello", "world"]);
+    assert_eq!(&buf.window(3, 2), &["tschuess", "welt"]);
+    assert_eq!(&buf.window(1, 4), &["hello", "world", "tschuess", "welt"]);
+    assert_eq!(&buf.window(4, 4), &["welt"]);
+}

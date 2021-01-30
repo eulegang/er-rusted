@@ -34,7 +34,7 @@ impl DrawCmd for InsertTextDrawCmd<'_> {
             offset += 1;
         }
 
-        let lines = buffer.window(offset, height).unwrap();
+        let lines = buffer.window(offset, height);
         height -= lines.len();
 
         let mid_point = self.0 - offset;

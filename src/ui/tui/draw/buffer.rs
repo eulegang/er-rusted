@@ -37,7 +37,7 @@ impl DrawCmd for BufferDrawCmd {
             offset += 1;
         }
 
-        let lines = buffer.window(offset, height).unwrap();
+        let lines = buffer.window(offset, height);
         height -= lines.len();
 
         for line in lines {
