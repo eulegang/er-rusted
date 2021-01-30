@@ -122,7 +122,10 @@ impl Buffer {
 
     /// Scrolls the cursor backwards an amount
     pub fn scroll_backward(&mut self, delta: usize) {
-        self.cur = self.cursor().checked_sub(delta).unwrap_or(0);
+        self.cur = self.cursor().checked_sub(delta).unwrap_or(1);
+        if self.cur == 0 {
+            self.cur = 1
+        }
     }
 
     /// gives the number of lines
