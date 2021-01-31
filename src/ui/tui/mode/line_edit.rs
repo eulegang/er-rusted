@@ -263,6 +263,7 @@ impl LineEdit {
                             } else {
                                 hist.take().unwrap_or_default()
                             };
+                            self.cursor = self.cursor.min(self.buffer.len());
                         }
                     }
 
@@ -272,13 +273,15 @@ impl LineEdit {
                         }
 
                         if let Some(cmd) = hist.up(num) {
-                            self.buffer = cmd.to_string()
+                            self.buffer = cmd.to_string();
+                            self.cursor = self.cursor.min(self.buffer.len());
                         }
                     }
 
                     History::Current => {
                         if hist.active() {
-                            self.buffer = hist.take().unwrap_or_default()
+                            self.buffer = hist.take().unwrap_or_default();
+                            self.cursor = self.cursor.min(self.buffer.len());
                         }
                     }
 
@@ -288,7 +291,8 @@ impl LineEdit {
                         }
 
                         if let Some(cmd) = hist.last() {
-                            self.buffer = cmd.to_string()
+                            self.buffer = cmd.to_string();
+                            self.cursor = self.cursor.min(self.buffer.len());
                         }
                     }
                 }
