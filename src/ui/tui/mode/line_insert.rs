@@ -1,6 +1,8 @@
 use super::*;
+use crate::ed::cmd::Command;
 use crate::ui::tui::action::*;
 use crate::ui::tui::draw::*;
+use std::str::FromStr;
 
 pub struct LineInsert {
     buffer: String,
@@ -29,21 +31,7 @@ impl TMode for LineInsert {
                 }
             }
 
-            KeyCode::Enter => {
-                let next = Cmd::default();
-                RunCmd(&self.buffer).invoke(tui)?;
-
-                if tui.interp.scratch.is_stale() {
-                    tui.interp.scratch.refresh();
-                    ShowCursorDrawCmd(false).draw(tui)?;
-
-                    let next: Scratch = next.into();
-                    next.draw(tui)?;
-                    return Ok(next.into());
-                }
-
-                return Ok(next.into());
-            }
+            KeyCode::Enter => return self.process_cmd(tui),
 
             KeyCode::Esc => {
                 let edit: LineEdit = (self.buffer, self.cursor).into();
@@ -86,6 +74,66 @@ impl TMode for LineInsert {
         }
 
         Ok(self.into())
+    }
+}
+
+impl LineInsert {
+    fn process_cmd(mut self, tui: &mut Tui) -> crossterm::Result<SealedTMode> {
+        tui.history.reset();
+
+        if !self.buffer.trim().is_empty() {
+            tui.history.append(self.buffer.to_string());
+        }
+
+        let cmd = match Command::from_str(&self.buffer) {
+            Ok(cmd) => cmd,
+            Err(_) => {
+                ErrorDrawCmd("unable to parse command").draw(tui)?;
+                self.buffer.clear();
+                return Ok(self.into());
+            }
+        };
+
+        self.buffer.clear();
+
+        if cmd.needs_text() {
+            if let Some((pos, hide)) = cmd.text_markers(&tui.interp.buffer) {
+                let next: Text = (pos, hide, cmd).into();
+                next.draw(tui)?;
+
+                return Ok(next.into());
+            } else {
+                ErrorDrawCmd("text needed (not supported yet)").draw(tui)?;
+                return Ok(self.into());
+            }
+        }
+
+        match tui.interp.exec(&cmd) {
+            Ok(false) => {
+                tui.pending_quit = true;
+            }
+
+            Ok(true) => {
+                CmdDrawCmd("").draw(tui)?;
+                BufferDrawCmd.draw(tui)?;
+            }
+
+            Err(err) => {
+                ErrorDrawCmd(&format!("{}", err)).draw(tui)?;
+            }
+        }
+
+        let next = Cmd::default();
+        if tui.interp.scratch.is_stale() {
+            tui.interp.scratch.refresh();
+            ShowCursorDrawCmd(false).draw(tui)?;
+
+            let next: Scratch = next.into();
+            next.draw(tui)?;
+            return Ok(next.into());
+        }
+
+        return Ok(next.into());
     }
 }
 

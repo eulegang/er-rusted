@@ -1,11 +1,9 @@
 use super::Tui;
 use enum_dispatch::enum_dispatch;
 
-mod run;
 mod scroll;
 mod window_lock;
 
-pub use run::RunCmd;
 pub use scroll::Scroll;
 pub use window_lock::RotateWindowLock;
 
@@ -19,3 +17,4 @@ pub enum SealedAction {
     Scroll,
     RotateWindowLock,
 }
+
