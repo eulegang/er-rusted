@@ -1,7 +1,8 @@
 use crate::Buffer;
-use std::fs::{File, OpenOptions};
+use std::fs::{copy, File, OpenOptions};
 use std::io::Write;
 use std::process::{Command, Stdio};
+use tempfile::NamedTempFile;
 
 #[derive(Debug, PartialEq)]
 pub enum WriteHook {
@@ -39,9 +40,16 @@ impl WriteHook {
             }
 
             WriteHook::Proc(cmd) => {
+                let temp = match NamedTempFile::new() {
+                    Ok(f) => f,
+                    Err(_) => return false,
+                };
+
+                let (tfile, tpath) = temp.into_parts();
+
                 let mut child = match Command::new(cmd)
                     .stdin(Stdio::piped())
-                    .stdout(file)
+                    .stdout(tfile)
                     .arg(name)
                     .spawn()
                 {
@@ -59,7 +67,16 @@ impl WriteHook {
 
                 drop(stdin);
 
-                if !child.wait().is_ok() {
+                let status = match child.wait() {
+                    Ok(s) => s,
+                    Err(_) => return false,
+                };
+
+                if !status.success() {
+                    return false;
+                }
+
+                if let Err(_) = copy(tpath, name) {
                     return false;
                 }
 

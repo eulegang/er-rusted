@@ -13,3 +13,5 @@ rustyline = "7.0"
 atty = "0.2"
 crossterm = "0.19"
 enum_dispatch = "0.3"
+tempfile = "3.2"
+
