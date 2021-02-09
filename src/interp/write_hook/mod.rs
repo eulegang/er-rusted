@@ -18,18 +18,18 @@ impl Default for WriteHook {
 
 impl WriteHook {
     pub fn sync(&self, name: &str, buffer: &mut Buffer, lines: &[String]) -> bool {
-        let mut file = match OpenOptions::new()
-            .truncate(true)
-            .write(true)
-            .create(true)
-            .open(name)
-        {
-            Ok(f) => f,
-            Err(_) => return false,
-        };
-
         match self {
             WriteHook::Id => {
+                let mut file = match OpenOptions::new()
+                    .truncate(true)
+                    .write(true)
+                    .create(true)
+                    .open(name)
+                {
+                    Ok(f) => f,
+                    Err(_) => return false,
+                };
+
                 for line in lines {
                     if let Err(_) = writeln!(file, "{}", line) {
                         return false;
