@@ -73,19 +73,19 @@ impl WriteHook {
                 };
 
                 if !status.success() {
-                    return false;
+                    WriteHook::Id.sync(name, buffer, lines)
+                } else {
+                    if let Err(_) = copy(tpath, name) {
+                        return false;
+                    }
+
+                    let file = match File::open(name) {
+                        Ok(file) => file,
+                        Err(_) => return false,
+                    };
+
+                    buffer.load(file).is_ok()
                 }
-
-                if let Err(_) = copy(tpath, name) {
-                    return false;
-                }
-
-                let file = match File::open(name) {
-                    Ok(file) => file,
-                    Err(_) => return false,
-                };
-
-                buffer.load(file).is_ok()
             }
         }
     }
