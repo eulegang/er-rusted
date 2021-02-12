@@ -18,5 +18,9 @@ impl ScratchPad for StdoutScratchPad {
         self.out
             .write_all(line.as_bytes())
             .expect("Failed to write to stdout");
+
+        self.out
+            .write_all(&['\n' as u8])
+            .expect("Failed to write to stdout");
     }
 }
